@@ -6,6 +6,7 @@ from .openai_azure import LLMNodeAzure
 from .openai_gemini import LLMNodeGemini
 from .openai_mistral import LLMNodeMistral
 from .openai_ollama import LLMNodeOllama
+from .openai_claude import LLMNodeClaude
 
 __all__ = [
     "LLMState",
@@ -21,5 +22,6 @@ __all__ = [
     "LLMNodeGemini",
     "LLMNodeMistral",
     "LLMNodeOllama",
+    "LLMNodeClaude",
 
 ]
