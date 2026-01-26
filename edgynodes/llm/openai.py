@@ -1,28 +1,30 @@
 from types import TracebackType
-from .base import LLMNode, LLMState, LLMShared
+from .base import LLMNode, LLMState, LLMShared, LLMStream
 
 from openai import AsyncOpenAI as OpenAI
 from openai.types.chat import ChatCompletionChunk
 
-from typing import AsyncIterator, Callable
+from typing import AsyncIterator, AsyncGenerator
 
 from llm_ir import AIMessage, AIRoles, AIChunkText, AIChunkImageURL
 from llm_ir.adapter import to_openai, OpenAIMessage
-from edgygraph import Stream
 import requests
 import base64
 
-class OpenAIStream(Stream[str]):
+class OpenAIStream(LLMStream):
 
-    iterator: AsyncIterator[ChatCompletionChunk]
+    iterator: AsyncGenerator[ChatCompletionChunk]
 
-    def __init__(self, iterator: AsyncIterator[ChatCompletionChunk], on_complete: Callable[[str], None] | None = None) -> None:
+    def __init__(self, iterator: AsyncGenerator[ChatCompletionChunk]) -> None:
+        super().__init__() 
         
         self.iterator = iterator
-        self.on_complete = on_complete
-
 
     async def __anext__(self) -> str:
+
+        if self.abort.is_set():
+            print("Aborting Stream")
+            raise StopAsyncIteration
 
         chunk = await self.iterator.__anext__()
 
@@ -36,6 +38,9 @@ class OpenAIStream(Stream[str]):
         return await super().__aexit__(exc_type, exc, tb)
     
     async def aclose(self) -> None:
+        await super().aclose()
+        await self.iterator.close() # type:ignore 
+        print("aclose called")
         pass
         
 
@@ -65,7 +70,7 @@ class LLMNodeOpenAI[T: LLMState = LLMState, S: LLMShared = LLMShared](LLMNode[T,
 
             # print(response.choices[0].message.content)
 
-            state.messages.append(
+            state.new_messages.append(
                 AIMessage(
                     role=AIRoles.MODEL,
                     chunks=[AIChunkText(
@@ -86,10 +91,11 @@ class LLMNodeOpenAI[T: LLMState = LLMState, S: LLMShared = LLMShared](LLMNode[T,
                 stream=True
             )
 
-            if shared.llm_stream is not None:
-                raise Exception("Stream variable in Shared is occupied")
+            async with shared.lock:
+                if shared.llm_stream is not None:
+                    raise Exception("Stream variable in Shared is occupied")
             
-            shared.llm_stream = OpenAIStream(iterator=stream) # type: ignore
+                shared.llm_stream = OpenAIStream(iterator=stream) # type: ignore
 
         
 

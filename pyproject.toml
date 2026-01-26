@@ -1,6 +1,6 @@
 [project]
 name = "edgynodes"
-version = "0.0.0"
+version = "0.0.1"
 description = "Graph-based LLM Pipeline Builder with edgygraph and llm-ir"
 authors = [{ name="Mathis Siebert" }]
 requires-python = ">=3.13"
