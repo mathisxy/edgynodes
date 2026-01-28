@@ -162,7 +162,4 @@ class LLMNodeOpenAI[T: LLMState = LLMState, S: LLMShared = LLMShared](LLMNode[T,
                             except Exception as e:
                                 print(f"Error downloading image from URL {chunk.url}: {e}")
 
-        formatted = to_openai(messages)
-        print(formatted)
-        return formatted
-    
+        return to_openai(messages)    

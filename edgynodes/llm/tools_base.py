@@ -1,12 +1,17 @@
-from llmir import Tool, AIChunkText, AIChunkToolCall, AIMessageToolResponse
+from llmir import AIRoles, Tool, AIChunkText, AIChunkFile, AIChunkToolCall, AIMessageToolResponse, AIChunks
 from .base import LLMState, LLMShared
 from edgygraph import Node
 from typing import Any, Callable, Type, Tuple, cast
 from pydantic import Field, create_model, BaseModel
 from docstring_parser import parse
 from rich import print as rprint
+from datetime import datetime
 import json
 import inspect
+import mcp
+import fastmcp
+import base64
+import mimetypes
 
 
 
@@ -77,34 +82,125 @@ class AddToolsNode[T: LLMState = LLMState, S: LLMShared = LLMShared](Node[T, S])
             )
         
         return tools
+    
 
 
-class HandleToolCallsNode[T: LLMState = LLMState, S: LLMShared = LLMShared](Node[T, S]):
+class AddMCPToolsNode[T: LLMState = LLMState, S: LLMShared = LLMShared](Node[T, S]):
+
+    client: fastmcp.Client[Any]
+
+    def __init__(self, url: str) -> None:
+        super().__init__()
+
+        self.client = fastmcp.Client(url)
 
     async def run(self, state: T, shared: S) -> None:
         
-        for message in state.new_messages:
+        async with self.client:
 
-            for chunk in message.chunks:
+            tools: list[Tool] = self.format_tools(await self.client.list_tools())
 
-                if isinstance(chunk, AIChunkToolCall):
+            print("MCP Tools:")
+            print(tools)
+
+            state.tools.extend(tools)
+
+            async with shared.lock:
+                for tool in tools:
+                    async def function(_tool: Tool = tool, **kwargs: Any) -> fastmcp.client.client.CallToolResult:
+                        async with self.client:
+                            return await self.client.call_tool(
+                                name=_tool.name,
+                                arguments=kwargs
+                            )
+                    if tool.name in shared.tool_functions:
+                        raise Exception(f"Tool with name \"{tool.name}\" already exists")
+                    shared.tool_functions[tool.name] = function
+
+    
+    def format_tools(self, mcp_tools: list[mcp.types.Tool]) -> list[Tool]:
+
+        tools: list[Tool] = []
+
+        for mcp_tool in mcp_tools:
+            tools.append(
+                Tool(
+                    name=mcp_tool.name,
+                    description=mcp_tool.description or "",
+                    input_schema=mcp_tool.inputSchema,
+                )
+            )
+
+        return tools
+
+
+class GetToolCallResultsNode[T: LLMState = LLMState, S: LLMShared = LLMShared](Node[T, S]):
+
+    async def run(self, state: T, shared: S) -> None:
+        
+        async with shared.lock:
+
+            for message in state.new_messages:
+
+                for chunk in message.chunks:
+
+                    if isinstance(chunk, AIChunkToolCall):
+
+                        try:
+
+                            rprint(f"Executing function {chunk.name}")
+
+                            result = await self.run_function(shared, chunk)
+
+                            shared.tool_call_results.append(
+                                (
+                                    chunk, 
+                                    result
+                                )
+                            )
+
+                            rprint(f"Executed function {chunk.name}")
+                            rprint(state)
+
+                        except json.JSONDecodeError as e:
+                            e.add_note(f"Error execution function {chunk.name} with arguments {chunk.arguments}")
+                            raise e
+                        
+
+
+    async def run_function(self, shared: S, chunk: AIChunkToolCall) -> Any:
+        
+
+        func = shared.tool_functions[chunk.name]
+
+        if inspect.iscoroutinefunction(func):
+            return await func(**chunk.arguments)
+        else:
+            return func(**chunk.arguments)
+
                     
-                    try:
-                        result = await self.run_function(shared, chunk)
-
-                        state.new_messages.append(
-                            await self.format_result(chunk, result)
-                        )
-
-                        print(f"Executed function {chunk.name}")
-                        rprint(state)
-
-                    except json.JSONDecodeError as e:
-                        e.add_note(f"Unable to JSON encode result for function {chunk.name} with arguments {chunk.arguments}")
-                        raise e
 
 
-    async def format_result(self, chunk: AIChunkToolCall, result: Any) -> AIMessageToolResponse:
+
+class IntegrateToolResultsNode[T: LLMState = LLMState, S: LLMShared = LLMShared](Node[T, S]):
+
+    async def run(self, state: T, shared: S) -> None:
+
+        async with shared.lock:
+
+            for chunk, result in shared.tool_call_results:
+
+                try:
+                    state.new_messages.append(self.format_result(chunk, result))
+
+                except json.JSONDecodeError as e:
+                    e.add_note(f"Unable to JSON encode result for function {chunk.name} with arguments {chunk.arguments}")
+                    raise e
+            
+            shared.tool_call_results = []
+
+
+    def format_result(self, chunk: AIChunkToolCall, result: Any) -> AIMessageToolResponse:
 
         if not isinstance(result, str):
             result = json.dumps(result)
@@ -119,13 +215,77 @@ class HandleToolCallsNode[T: LLMState = LLMState, S: LLMShared = LLMShared](Node
             ]
         )
     
-    async def run_function(self, shared: S, chunk: AIChunkToolCall) -> Any:
-        
+
+class IntegrateMCPToolResultsNode[T: LLMState = LLMState, S: LLMShared = LLMShared](Node[T, S]):
+
+    async def run(self, state: T, shared: S) -> None:
+
+        remaining: list[Tuple[AIChunkToolCall, Any]] = []
+
+
         async with shared.lock:
 
-            func = shared.tool_functions[chunk.name]
+            rprint(shared)
 
-            if inspect.iscoroutinefunction(func):
-                return await func(**chunk.arguments)
-            else:
-                return func(**chunk.arguments)
+            for chunk, result in shared.tool_call_results:
+
+                rprint(chunk)
+
+                if not isinstance(result, fastmcp.client.client.CallToolResult):
+                        remaining.append((chunk, result))
+                        continue
+
+                try:
+                    state.new_messages.append(self.format_result(chunk, result))
+
+                except json.JSONDecodeError as e:
+                    e.add_note(f"Unable to JSON encode result for function {chunk.name} with arguments {chunk.arguments}")
+                    raise e
+            
+            shared.tool_call_results = remaining
+
+
+    def format_result(self, chunk: AIChunkToolCall, result: fastmcp.client.client.CallToolResult) -> AIMessageToolResponse:
+        
+
+        result_chunks: list[AIChunks] = []
+
+        for content in result.content:
+
+            match content:
+                
+                case mcp.types.TextContent():
+                    result_chunks.append(
+                        AIChunkText(
+                            text=content.text
+                        )
+                    )
+                case mcp.types.ImageContent() | mcp.types.AudioContent():
+                    bytes = base64.b64decode(content.data)
+                    mimetype = content.mimeType
+                    ext = mimetypes.guess_extension(mimetype)
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    name = f"{chunk.name}_{timestamp}{ext}"
+                    result_chunks.append(
+                        AIChunkFile(
+                            name=name,
+                            mimetype=mimetype,
+                            bytes=bytes
+                        )
+                    )
+                case mcp.types.ResourceLink() | mcp.types.EmbeddedResource():
+                    raise NotImplementedError("Handling of ResourceLinks and EmbeddedResources as MCP function results are not yet implemented")
+                
+        if not result_chunks:
+            result_chunks = [
+                AIChunkText(
+                    text="Empty Result"
+                )
+            ]
+
+        return AIMessageToolResponse(
+            role=AIRoles.TOOL,
+            id=chunk.id,
+            name=chunk.name,
+            chunks=result_chunks
+        )

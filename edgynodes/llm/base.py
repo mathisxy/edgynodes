@@ -1,7 +1,7 @@
 from edgygraph import Node, State, Shared, Stream
-from llmir import AIMessages, Tool
+from llmir import AIMessages, Tool, AIChunkToolCall
 from pydantic import BaseModel, Field
-from typing import Callable, Any
+from typing import Callable, Any, Tuple
 import asyncio
 
 class LLMStream(Stream[str]):
@@ -20,7 +20,8 @@ class LLMState(State):
 class LLMShared(Shared):
     llm_stream: LLMStream | None = None
 
-    tool_functions: dict[str, Callable[..., Any]] = Field(default_factory=dict) # name -> function
+    tool_functions: dict[str, Callable[..., Any]] = Field(default_factory=dict[str, Callable[..., Any]]) # name -> function
+    tool_call_results: list[Tuple[AIChunkToolCall, Any]] = Field(default_factory=list[Tuple[AIChunkToolCall, Any]])
     
 
 
