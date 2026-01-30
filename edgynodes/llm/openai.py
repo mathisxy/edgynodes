@@ -3,37 +3,106 @@ from .base import LLMNode, LLMState, LLMShared, LLMStream
 
 from openai import AsyncOpenAI as OpenAI
 from openai.types.chat import ChatCompletionChunk, ChatCompletionFunctionToolParam, ChatCompletion
+from openai.types.chat.chat_completion_chunk import ChoiceDeltaToolCall
 
-from typing import AsyncIterator, AsyncGenerator
+from typing import AsyncIterator, AsyncGenerator, TypedDict
 
 from llmir import AIMessages, AIRoles, AIChunkText, AIChunkImageURL, Tool, AIChunks, AIChunkToolCall, AIMessage
 from llmir.adapter import to_openai, OpenAIMessages
+from rich import print as rprint
 import requests
 import base64
 import json
 
+class ToolCallDict(TypedDict):
+    id: str
+    name: str
+    arguments: str
+
+
 class OpenAIStream(LLMStream):
 
     iterator: AsyncGenerator[ChatCompletionChunk]
+
+    _tool_calls: dict[int, ToolCallDict]
 
     def __init__(self, iterator: AsyncGenerator[ChatCompletionChunk]) -> None:
         super().__init__() 
         
         self.iterator = iterator
 
-    async def __anext__(self) -> str:
+        self._tool_calls = {}
+
+    async def __anext__(self) -> AIChunks:
 
         if self.abort.is_set():
             print("Aborting Stream")
             raise StopAsyncIteration
 
-        chunk = await self.iterator.__anext__()
+        formatted: AIChunks | None = None
 
-        if chunk.choices and chunk.choices[0].delta.content:
-            text = chunk.choices[0].delta.content
-            return text
+        chunk: ChatCompletionChunk
+
+        while not formatted:
+            
+            try:
+                chunk = await self.iterator.__anext__()
+            
+            except StopAsyncIteration:
+
+                if self._tool_calls:
+                    lowest_index = min(self._tool_calls)
+                    tool_call_dict = self._tool_calls.pop(lowest_index)
+
+                    return AIChunkToolCall(
+                        id=tool_call_dict["id"],
+                        name=tool_call_dict["name"],
+                        arguments=json.loads(tool_call_dict["arguments"])
+                    )
+
+                raise StopAsyncIteration
+            
+            delta = chunk.choices[0].delta
+
+            if delta.content and delta.content.strip():
+                formatted = AIChunkText(
+                    text=delta.content
+                )
+            
                 
-        return ""
+            if delta.tool_calls:
+                self.integrate_tool_calls(delta.tool_calls)
+
+                        
+                
+        return formatted
+    
+
+    def integrate_tool_calls(self, tool_calls: list[ChoiceDeltaToolCall]) -> None:
+
+        for tool_call in tool_calls:
+
+                    if tool_call.index not in self._tool_calls:
+                        
+                        self._tool_calls[tool_call.index] = ToolCallDict(
+                            id="",
+                            name="",
+                            arguments="",
+                        )
+
+                    if tool_call.id:
+                        self._tool_calls[tool_call.index]["id"] = tool_call.id
+
+                    if function := tool_call.function:
+
+                        if function.name:
+                            self._tool_calls[tool_call.index]["name"] = function.name
+
+                        if function.arguments:
+                            self._tool_calls[tool_call.index]["arguments"] += function.arguments
+
+
+        
     
     async def __aexit__(self, exc_type: type[BaseException] | None, exc: BaseException | None, tb: TracebackType | None) -> None:
         return await super().__aexit__(exc_type, exc, tb)
@@ -57,7 +126,7 @@ class LLMNodeOpenAI[T: LLMState = LLMState, S: LLMShared = LLMShared](LLMNode[T,
 
     async def run(self, state: T, shared: S) -> None:
         
-        chat = state.messages
+        chat = state.llm_messages
 
         # printable_history = [message for message in history if not any(isinstance(chunk, AIChunkImageURL) for chunk in message.chunks)]
         # print(printable_history)
@@ -67,12 +136,12 @@ class LLMNodeOpenAI[T: LLMState = LLMState, S: LLMShared = LLMShared](LLMNode[T,
             response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=self.format_messages(chat), # type: ignore
-                tools=self.format_tools(state.tools),
+                tools=self.format_tools(state.llm_tools),
             )
 
             # print(response.choices[0].message.content)
 
-            state.new_messages.append(
+            state.llm_new_messages.append(
                 self.format_response(state, response)
             )
             
@@ -84,7 +153,7 @@ class LLMNodeOpenAI[T: LLMState = LLMState, S: LLMShared = LLMShared](LLMNode[T,
             stream: AsyncIterator[ChatCompletionChunk] = await self.client.chat.completions.create( # type: ignore
                 model=self.model,
                 messages=self.format_messages(chat), # type: ignore
-                tools=self.format_tools(state.tools),
+                tools=self.format_tools(state.llm_tools),
                 stream=True
             )
 
@@ -162,4 +231,6 @@ class LLMNodeOpenAI[T: LLMState = LLMState, S: LLMShared = LLMShared](LLMNode[T,
                             except Exception as e:
                                 print(f"Error downloading image from URL {chunk.url}: {e}")
 
-        return to_openai(messages)    
+        formatted = to_openai(messages)
+        # rprint(formatted)
+        return formatted

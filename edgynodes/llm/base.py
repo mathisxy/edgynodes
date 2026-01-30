@@ -1,27 +1,29 @@
 from edgygraph import Node, State, Shared, Stream
-from llmir import AIMessages, Tool, AIChunkToolCall
+from llmir import AIMessages, Tool, AIChunkToolCall, AIChunks
 from pydantic import BaseModel, Field
 from typing import Callable, Any, Tuple
 import asyncio
 
-class LLMStream(Stream[str]):
+class LLMStream(Stream[AIChunks]):
     abort: asyncio.Event
 
     def __init__(self) -> None:
         self.abort = asyncio.Event()
 
 class LLMState(State):
-    messages: list[AIMessages] = Field(default_factory=list[AIMessages])
-    new_messages: list[AIMessages] = Field(default_factory=list[AIMessages])
+    llm_messages: list[AIMessages] = Field(default_factory=list[AIMessages])
+    llm_new_messages: list[AIMessages] = Field(default_factory=list[AIMessages])
 
-    tools: list[Tool] = Field(default_factory=list[Tool])
+    llm_tools: list[Tool] = Field(default_factory=list[Tool])
 
 
 class LLMShared(Shared):
     llm_stream: LLMStream | None = None
 
-    tool_functions: dict[str, Callable[..., Any]] = Field(default_factory=dict[str, Callable[..., Any]]) # name -> function
-    tool_call_results: list[Tuple[AIChunkToolCall, Any]] = Field(default_factory=list[Tuple[AIChunkToolCall, Any]])
+    llm_tool_functions: dict[str, Callable[..., Any]] = Field(default_factory=dict[str, Callable[..., Any]]) # name -> function
+
+    llm_new_tool_calls: list[AIChunkToolCall] = Field(default_factory=list[AIChunkToolCall])
+    llm_new_tool_call_results: list[Tuple[AIChunkToolCall, Any]] = Field(default_factory=list[Tuple[AIChunkToolCall, Any]])
     
 
 
@@ -59,7 +61,7 @@ class AddMessageNode[T: LLMState = LLMState, S: LLMShared = LLMShared](Node[T, S
 
     async def run(self, state: T, shared: S) -> None:
     
-        state.messages.append(
+        state.llm_messages.append(
             self.message
         )
 
@@ -70,6 +72,6 @@ class SaveNewMessagesNode[T: LLMState = LLMState, S: LLMShared = LLMShared](Node
 
         print("Saving new messages to messages")
         
-        state.messages.extend(state.new_messages)
+        state.llm_messages.extend(state.llm_new_messages)
 
-        state.new_messages = []
+        state.llm_new_messages = []
