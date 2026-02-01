@@ -149,9 +149,6 @@ class AddMCPToolsNode[T: LLMState = LLMState, S: LLMShared = LLMShared](Node[T, 
 
             tools: list[Tool] = self.format_tools(await self.client.list_tools())
 
-            print("MCP Tools:")
-            print(tools)
-
             state.llm_tools.extend(tools)
 
             async with shared.lock:

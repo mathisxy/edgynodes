@@ -2,7 +2,7 @@ from edgygraph import Node, Stream
 from edgynodes.llm import LLMState, LLMShared
 from edgynodes.discord import DiscordState, DiscordShared
 
-from llmir import AIMessage, AIRoles, AIChunks, AIChunkFile, AIChunkText, AIChunkImageURL, AIMessageToolResponse
+from llmir import AIMessage, AIRoles, AIChunks, AIChunkFile, AIChunkText, AIChunkImageURL, AIMessageToolResponse, AIChunkToolCall
 from discord.abc import Messageable
 from discord import Message
 
@@ -146,16 +146,18 @@ class RespondNode(Node[DiscordLLMState, DiscordLLMShared]):
 
 
     @classmethod
-    async def send_chunk(cls, chunk: AIChunks, channel: Messageable):
+    async def send_chunk(cls, chunk: AIChunks, channel: Messageable) -> Message:
 
         match chunk:
             case AIChunkText():
-                await channel.send(content=chunk.text)
+                return await channel.send(content=chunk.text)
             case AIChunkFile():
                 file = discord.File(io.BytesIO(chunk.bytes), filename=chunk.name)
-                await channel.send(file=file)
+                return await channel.send(file=file)
             case AIChunkImageURL():
-                await channel.send(content=chunk.url)
+                return await channel.send(content=chunk.url)
+            case AIChunkToolCall():
+                return await channel.send(embed=discord.Embed(title=chunk.name, description="\n".join([f" - {k}: {v}" for k, v in chunk.arguments.items()])))
             case _:
-                pass
+                raise ValueError(f"Unknown chunk type: {chunk}")
     
