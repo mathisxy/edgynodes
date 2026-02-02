@@ -1,29 +1,30 @@
 from edgygraph import State, Shared, Node
 from pydantic import Field
 from discord import Message
-from discord import TextChannel, DMChannel, Thread, VoiceChannel, StageChannel, GroupChannel, PartialMessageable
+# from discord import TextChannel, DMChannel, Thread, VoiceChannel, StageChannel, GroupChannel, PartialMessageable
 from discord.context_managers import Typing
 from discord.ext import commands
+from  discord.abc import Messageable
 
-MessageableChannel = TextChannel | DMChannel | Thread | VoiceChannel | StageChannel | GroupChannel | PartialMessageable
+# MessageableChannel = TextChannel | DMChannel | Thread | VoiceChannel | StageChannel | GroupChannel | PartialMessageable
 
 class DiscordTypingManager:
 
-    _active: dict[int, Typing] = {}
+    _active: dict[Messageable, Typing] = {}
 
-    async def start(self, channel: MessageableChannel) -> None:
-        if channel.id in self._active:
+    async def start(self, channel: Messageable) -> None:
+        if channel in self._active:
             return
         
         typing_ctx: Typing = channel.typing()
         await typing_ctx.__aenter__()
-        self._active[channel.id] = typing_ctx
+        self._active[channel] = typing_ctx
 
-    async def stop(self, channel: MessageableChannel) -> None:
-        if channel.id not in self._active:
+    async def stop(self, channel: Messageable) -> None:
+        if channel not in self._active:
             raise Exception(f"No typing context for channel {channel} found")
         
-        typing_ctx: Typing = self._active.pop(channel.id)
+        typing_ctx: Typing = self._active.pop(channel)
         await typing_ctx.__aexit__(None, None, None)
 
 
@@ -41,9 +42,9 @@ class DiscordShared(Shared):
 
 class StartTypingNode(Node[DiscordState, DiscordShared]):
 
-    _channel: MessageableChannel | None
+    _channel: Messageable | None
 
-    def __init__(self, channel: MessageableChannel | None = None) -> None:
+    def __init__(self, channel: Messageable | None = None) -> None:
 
         self._channel = channel
 
@@ -52,15 +53,15 @@ class StartTypingNode(Node[DiscordState, DiscordShared]):
         
         async with shared.lock:
 
-            channel: MessageableChannel = self._channel or shared.discord_message.channel
+            channel: Messageable = self._channel or shared.discord_message.channel
 
             await shared.discord_typing.start(channel)
 
 class StopTypingNode(Node[DiscordState, DiscordShared]):
 
-    _channel: MessageableChannel | None
+    _channel: Messageable | None
 
-    def __init__(self, channel: MessageableChannel | None = None) -> None:
+    def __init__(self, channel: Messageable | None = None) -> None:
 
         self._channel = channel
 
@@ -68,6 +69,6 @@ class StopTypingNode(Node[DiscordState, DiscordShared]):
         
         async with shared.lock:
 
-            channel: MessageableChannel = self._channel or shared.discord_message.channel
+            channel: Messageable = self._channel or shared.discord_message.channel
 
             await shared.discord_typing.stop(channel)

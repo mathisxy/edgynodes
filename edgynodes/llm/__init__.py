@@ -1,5 +1,5 @@
 from .base import LLMState, LLMShared, LLMNode, Supports, AddMessageNode, SaveNewMessagesNode
-from .tools_base import AddToolsNode, AddMCPToolsNode, GetNewToolCallsNode, GetNextToolCallResultNode, IntegrateToolResultsNode, IntegrateMCPToolResultsNode
+from .tools_base import AddToolsNode, AddMCPToolsNode, GetNewToolCallsNode, GetNextToolCallResultNode, IntegrateToolResultsNode, IntegrateMCPToolResultsNode, MCPToolFunction
 
 from .openai import LLMNodeOpenAI, OpenAIStream
 
@@ -32,5 +32,6 @@ __all__ = [
     "GetNextToolCallResultNode",
     "IntegrateToolResultsNode",
     "IntegrateMCPToolResultsNode",
+    "MCPToolFunction"
 
 ]

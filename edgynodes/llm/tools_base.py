@@ -14,7 +14,7 @@ import base64
 import mimetypes
 
 
-class ToolFunction[T: Any = Any]:
+class MCPToolFunction[T: Any = Any]:
 
     tool: Tool
     client: fastmcp.Client[Any]
@@ -153,7 +153,7 @@ class AddMCPToolsNode[T: LLMState = LLMState, S: LLMShared = LLMShared](Node[T, 
 
             async with shared.lock:
                 for tool in tools:
-                    function = ToolFunction(
+                    function = MCPToolFunction(
                         tool,
                         self.client,
                     )

@@ -25,6 +25,15 @@ class DiscordLLMShared(LLMShared, DiscordShared):
 
 class BuildChatNode(Node[DiscordLLMState, DiscordLLMShared]):
 
+    include_embeds: bool
+    include_attachments: bool
+
+    def __init__(self, include_embeds: bool = True, include_attachments: bool = True) -> None:
+        super().__init__()
+        self.include_embeds = include_embeds
+        self.include_attachments = include_attachments
+
+
     async def run(self, state: DiscordLLMState, shared: DiscordLLMShared) -> None:
 
         chat: list[AIMessage] = []
@@ -42,7 +51,11 @@ class BuildChatNode(Node[DiscordLLMState, DiscordLLMShared]):
             if msg.content:
                 chunks.append(AIChunkText(text=msg.content))
 
-            if msg.attachments:
+            if msg.embeds and self.include_embeds:
+                for embed in msg.embeds:
+                    chunks.extend(self.format_embed(embed))
+
+            if msg.attachments and self.include_attachments:
                 for attachment in msg.attachments:
 
                     mimetype, _ = mimetypes.guess_type(attachment.filename)
@@ -62,6 +75,32 @@ class BuildChatNode(Node[DiscordLLMState, DiscordLLMShared]):
         chat.reverse()
 
         state.llm_messages.extend(chat)
+
+
+    def format_embed(self, embed: discord.Embed) -> list[AIChunks]:
+        """Konvertiert ein Discord Embed in Text AI Chunks"""
+        chunks: list[AIChunks] = []
+        
+        if embed.title:
+            chunks.append(AIChunkText(text=f"**{embed.title}**"))
+        
+        if embed.description:
+            chunks.append(AIChunkText(text=embed.description))
+        
+        if embed.fields:
+            for field in embed.fields:
+                chunks.append(AIChunkText(text=f"{field.name}: {field.value}"))
+        
+        if embed.footer and embed.footer.text:
+            chunks.append(AIChunkText(text=f"__{embed.footer.text}__"))
+
+        if embed.image.url:
+            chunks.append(AIChunkImageURL(url=embed.image.url))
+
+        if embed.video.url: # Not supported currently
+            chunks.append(AIChunkText(text=embed.video.url))
+        
+        return chunks
 
 
 class RespondNode(Node[DiscordLLMState, DiscordLLMShared]):
@@ -157,7 +196,9 @@ class RespondNode(Node[DiscordLLMState, DiscordLLMShared]):
             case AIChunkImageURL():
                 return await channel.send(content=chunk.url)
             case AIChunkToolCall():
-                return await channel.send(embed=discord.Embed(title=chunk.name, description="\n".join([f" - {k}: {v}" for k, v in chunk.arguments.items()])))
+                return await channel.send(embed=discord.Embed(
+                    title=chunk.name.replace("_", " ").title(), 
+                    description="\n".join([f" - **{k.replace("_", " ").capitalize()}**: {v}" for k, v in chunk.arguments.items()])
+                ))
             case _:
                 raise ValueError(f"Unknown chunk type: {chunk}")
-    
