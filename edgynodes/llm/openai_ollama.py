@@ -7,5 +7,10 @@ class LLMNodeOllama(LLMNodeOpenAI):
         remote_image_urls=False,
     )
 
-    def __init__(self, model: str, api_key: str, base_url: str ="http://localhost:11434/v1", enable_streaming: bool = True) -> None:
-        super().__init__(model, api_key, base_url, enable_streaming)
+    def __init__(self, model: str, api_key: str = "ollama", base_url: str ="http://localhost:11434/v1", enable_streaming: bool = False, keep_alive: str | None = None, extra_body: dict[str, object] | None = None) -> None:
+        if keep_alive is not None:
+            if extra_body is None:
+                extra_body = {}
+            extra_body["keep_alive"] = keep_alive
+            
+        super().__init__(model=model, api_key=api_key, base_url=base_url, enable_streaming=enable_streaming, extra_body=extra_body)

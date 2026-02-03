@@ -143,7 +143,7 @@ class RespondNode(Node[DiscordLLMState, DiscordLLMShared]):
     async def stream_response(cls, stream: Stream[AIChunks], channel: Messageable) -> list[AIChunks]:
 
         chunks: list[AIChunks] = []
-        text_message: Message | None = None
+        text_messages: list[Message] = []
         text: str = ""
         last_edit: float = 0.0
         EDIT_INTERVAL: float = 1.0
@@ -162,43 +162,71 @@ class RespondNode(Node[DiscordLLMState, DiscordLLMShared]):
                     now = time.monotonic()
 
                     if now - last_edit >= EDIT_INTERVAL:
-                        if text_message is None:
-                            text_message = await channel.send(content=text)
-                        else:
-                            await text_message.edit(content=text)
+                        text_messages = await cls.send_text_chunks(text_messages, text, channel)
                         last_edit = now
 
                 else:
                     await cls.send_chunk(chunk, channel)
                     chunks.append(chunk)
 
-
-        if text_message:
-            await text_message.edit(content=text)
-            chunks.append(
-                AIChunkText(
-                    text=text
+        if text.strip():
+            await cls.send_text_chunks(text_messages, text, channel)
+            for text_chunk in cls.chunk_string(text):
+                chunks.append(
+                    AIChunkText(
+                        text=text_chunk
+                    )
                 )
-            )
 
         return chunks
 
+    @classmethod
+    async def send_text_chunks(cls, text_messages: list[Message], text: str, channel: Messageable) -> list[Message]:
+
+        text_messages = text_messages.copy()
+
+        for index, text_chunk in enumerate(cls.chunk_string(text)):
+
+            if len(text_messages) > index:
+
+                await text_messages[index].edit(content=text_chunk)
+
+            else:
+
+                text_messages.append(
+                    await channel.send(content=text_chunk)
+                )
+
+        return text_messages
+
+
+
 
     @classmethod
-    async def send_chunk(cls, chunk: AIChunks, channel: Messageable) -> Message:
+    async def send_chunk(cls, chunk: AIChunks, channel: Messageable) -> list[Message]:
 
         match chunk:
             case AIChunkText():
-                return await channel.send(content=chunk.text)
+                msgs: list[Message] = []
+                for text_chunk in cls.chunk_string(chunk.text):
+                    msgs.append(await channel.send(content=text_chunk))
+                return msgs
             case AIChunkFile():
                 file = discord.File(io.BytesIO(chunk.bytes), filename=chunk.name)
-                return await channel.send(file=file)
+                return [await channel.send(file=file)]
             case AIChunkImageURL():
-                return await channel.send(content=chunk.url)
+                return [await channel.send(content=chunk.url)]
             case AIChunkToolCall():
-                return await channel.send(embed=discord.Embed(
-                    title=chunk.name.replace("_", " ").title(), 
-                    description="\n".join([f" - **{k.replace("_", " ").capitalize()}**: {v}" for k, v in chunk.arguments.items()])
-                ))
+                formatted_args: dict[str, object] = {k.replace("_", " ").capitalize(): v for k, v in chunk.arguments.items()}
+                embed = discord.Embed(title=chunk.name.replace("_", " ").title())
+                for key, value in formatted_args.items():
+                    embed.add_field(name=key, value=value, inline=True)
+                return [await channel.send(embed=embed)]
             case _:
                 raise ValueError(f"Unknown chunk type: {chunk}")
+            
+
+    @classmethod
+    def chunk_string(cls, text: str, chunk_size: int = 2000):
+        for i in range(0, len(text), chunk_size):
+            yield text[i:i+chunk_size]

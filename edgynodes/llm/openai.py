@@ -9,7 +9,6 @@ from typing import AsyncIterator, AsyncGenerator, TypedDict
 
 from llmir import AIMessages, AIRoles, AIChunkText, AIChunkImageURL, Tool, AIChunks, AIChunkToolCall, AIMessage
 from llmir.adapter import to_openai, OpenAIMessages
-from rich import print as rprint
 import requests
 import base64
 import json
@@ -64,7 +63,7 @@ class OpenAIStream(LLMStream):
             
             delta = chunk.choices[0].delta
 
-            if delta.content and delta.content.strip():
+            if delta.content:
                 formatted = AIChunkText(
                     text=delta.content
                 )
@@ -116,20 +115,19 @@ class OpenAIStream(LLMStream):
 
 class LLMNodeOpenAI[T: LLMState = LLMState, S: LLMShared = LLMShared](LLMNode[T, S]):
 
-    client: OpenAI  
+    client: OpenAI
+    extra_body: dict[str, object] | None
 
-    def __init__(self, model: str, api_key: str, base_url: str = "https://api.openai.com/v1", enable_streaming: bool = False) -> None:
+    def __init__(self, model: str, api_key: str, base_url: str = "https://api.openai.com/v1", enable_streaming: bool = False, extra_body: dict[str, object] | None = None) -> None:
         super().__init__(model, enable_streaming)
 
         self.client = OpenAI(api_key=api_key, base_url=base_url)
+        self.extra_body = extra_body
 
 
     async def run(self, state: T, shared: S) -> None:
         
         chat = state.llm_messages
-
-        # printable_history = [message for message in history if not any(isinstance(chunk, AIChunkImageURL) for chunk in message.chunks)]
-        # print(printable_history)
 
         if not self.enable_streaming:
 
@@ -137,9 +135,8 @@ class LLMNodeOpenAI[T: LLMState = LLMState, S: LLMShared = LLMShared](LLMNode[T,
                 model=self.model,
                 messages=self.format_messages(chat), # type: ignore
                 tools=self.format_tools(state.llm_tools),
+                extra_body=self.extra_body,
             )
-
-            # print(response.choices[0].message.content)
 
             state.llm_new_messages.append(
                 self.format_response(state, response)

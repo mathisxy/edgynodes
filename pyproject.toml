@@ -5,7 +5,7 @@ description = "Graph-based LLM Pipeline Builder with edgygraph and llm-ir"
 authors = [{ name="Mathis Siebert" }]
 requires-python = ">=3.13"
 dependencies = [
-    "llm-ir>=0.0.6",
+    "llmir>=0.0.13",
     "edgygraph>=0.0.2"
 ]
 
