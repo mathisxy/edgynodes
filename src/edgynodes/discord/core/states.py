@@ -27,10 +27,10 @@ class DiscordTypingManager:
 
 
 
-class DiscordTextState(State):
+class DiscordState(State):
     pass
 
-class DiscordTextShared(Shared):
+class DiscordShared(Shared):
     discord_message: Message
     discord_bot: commands.Bot
     discord_typing: DiscordTypingManager = Field(default_factory=DiscordTypingManager)

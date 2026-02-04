@@ -1,10 +1,10 @@
 from edgygraph import Node
 from discord.abc import Messageable
 
-from .states import DiscordTextState, DiscordTextShared
+from .states import DiscordState, DiscordShared
 
 
-class StartTypingNode(Node[DiscordTextState, DiscordTextShared]):
+class StartTypingNode(Node[DiscordState, DiscordShared]):
 
     _channel: Messageable | None
 
@@ -13,7 +13,7 @@ class StartTypingNode(Node[DiscordTextState, DiscordTextShared]):
         self._channel = channel
 
 
-    async def run(self, state: DiscordTextState, shared: DiscordTextShared) -> None:
+    async def run(self, state: DiscordState, shared: DiscordShared) -> None:
         
         async with shared.lock:
 
@@ -21,7 +21,7 @@ class StartTypingNode(Node[DiscordTextState, DiscordTextShared]):
 
             await shared.discord_typing.start(channel)
 
-class StopTypingNode(Node[DiscordTextState, DiscordTextShared]):
+class StopTypingNode(Node[DiscordState, DiscordShared]):
 
     _channel: Messageable | None
 
@@ -29,7 +29,7 @@ class StopTypingNode(Node[DiscordTextState, DiscordTextShared]):
 
         self._channel = channel
 
-    async def run(self, state: DiscordTextState, shared: DiscordTextShared) -> None:
+    async def run(self, state: DiscordState, shared: DiscordShared) -> None:
         
         async with shared.lock:
 

@@ -2,7 +2,7 @@ from edgygraph import State, Shared
 from llmir import AIMessages, Tool, AIChunkToolCall
 from pydantic import Field
 from typing import Callable, Any, Tuple
-from .base_streams import LLMStream
+from .streams import LLMStream
 
 class LLMState(State):
     llm_messages: list[AIMessages] = Field(default_factory=list[AIMessages])

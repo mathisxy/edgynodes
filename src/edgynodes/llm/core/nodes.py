@@ -1,7 +1,7 @@
 from edgygraph import Node
 from llmir import AIMessages
 from pydantic import BaseModel
-from .base_states import LLMState, LLMShared    
+from .states import LLMState, LLMShared    
 
 
 class Supports(BaseModel):
