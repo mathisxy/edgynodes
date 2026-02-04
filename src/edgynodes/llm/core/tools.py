@@ -1,6 +1,6 @@
-from llmir import AIRoles, Tool, AIChunkText, AIChunkFile, AIChunkToolCall, AIMessageToolResponse, AIChunks
-from .base import LLMState, LLMShared
-from edgygraph import Node
+from llmir import AIRoles, AIChunkText, AIChunkFile, AIChunkToolCall, AIMessageToolResponse, AIChunks
+import llmir
+from edgygraph import Node, State, Shared
 from typing import Any, Callable, Type, Tuple, cast, overload
 from pydantic import Field, create_model, BaseModel
 from docstring_parser import parse
@@ -13,10 +13,12 @@ import fastmcp
 import base64
 import mimetypes
 
+from .core.states import LLMState, LLMShared
 
-class MCPToolFunction[T: Any = Any]:
 
-    tool: Tool
+class MCPToolFunction:
+
+    tool: llmir.Tool
     client: fastmcp.Client[Any]
     timeout: timedelta | float | int | None
     progress_handler: fastmcp.client.client.ProgressHandler | None
@@ -24,7 +26,7 @@ class MCPToolFunction[T: Any = Any]:
     meta: dict[str, Any] | None
 
     def __init__(self, 
-                 tool: Tool, 
+                 tool: llmir.Tool, 
                  client: fastmcp.Client[Any], 
                  timeout: timedelta | float | int | None = None,
                  progress_handler: fastmcp.client.client.ProgressHandler | None = None,
@@ -37,6 +39,7 @@ class MCPToolFunction[T: Any = Any]:
         self.progress_handler = progress_handler
         self.raise_on_error = raise_on_error
         self.meta = meta
+
 
 
     async def __call__(self, **kwargs: Any) -> fastmcp.client.client.CallToolResult:
@@ -53,10 +56,22 @@ class MCPToolFunction[T: Any = Any]:
             )
 
 
+class ToolContext:
+
+    CONTEXT_PARAMS: set[str] = {"state", "shared"}
+
+    @classmethod
+    def is_context_param(cls, param: inspect.Parameter) -> bool:
+        ann = param.annotation
+        return (
+            isinstance(ann, type)
+            and issubclass(ann, (State, Shared))
+        )
+
 
 class AddToolsNode[T: LLMState = LLMState, S: LLMShared = LLMShared](Node[T, S]): #TODO make it make sense
 
-    tools: dict[str, Tuple[Callable[..., Any], Tool]]
+    tools: dict[str, Tuple[Callable[..., Any], llmir.Tool]]
 
     def __init__(self, functions: list[Callable[..., Any]]) -> None:
         super().__init__()
@@ -77,9 +92,9 @@ class AddToolsNode[T: LLMState = LLMState, S: LLMShared = LLMShared](Node[T, S])
                 state.llm_tools.append(tool)
 
     
-    def format_functions(self, functions: list[Callable[..., Any]]) -> dict[str, Tuple[Callable[..., Any], Tool]]:
+    def format_functions(self, functions: list[Callable[..., Any]]) -> dict[str, Tuple[Callable[..., Any], llmir.Tool]]:
 
-        tools: dict[str, Tuple[Callable[..., Any], Tool]] = {}
+        tools: dict[str, Tuple[Callable[..., Any], llmir.Tool]] = {}
 
         for function in functions:
 
@@ -94,8 +109,8 @@ class AddToolsNode[T: LLMState = LLMState, S: LLMShared = LLMShared](Node[T, S])
 
             for name, param in signature.parameters.items():
 
-                # Skip *args or **kwargs
-                if param.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
+                # Skip *args or **kwargs and context parameters
+                if param.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD) or ToolContext.is_context_param(param):
                     continue
 
                 annotation = param.annotation if param.annotation is not inspect.Parameter.empty else Any
@@ -113,7 +128,7 @@ class AddToolsNode[T: LLMState = LLMState, S: LLMShared = LLMShared](Node[T, S])
 
             tools[function.__name__] = (
                 function,
-                Tool(
+                llmir.Tool(
                     name=function.__name__,
                     description=doc.description or "",
                     input_schema=dynamic_model.model_json_schema(),
@@ -147,7 +162,7 @@ class AddMCPToolsNode[T: LLMState = LLMState, S: LLMShared = LLMShared](Node[T, 
         
         async with self.client:
 
-            tools: list[Tool] = self.format_tools(await self.client.list_tools())
+            tools: list[llmir.Tool] = self.format_tools(await self.client.list_tools())
 
             state.llm_tools.extend(tools)
 
@@ -163,13 +178,13 @@ class AddMCPToolsNode[T: LLMState = LLMState, S: LLMShared = LLMShared](Node[T, 
                     shared.llm_tool_functions[tool.name] = function
 
     
-    def format_tools(self, mcp_tools: list[mcp.types.Tool]) -> list[Tool]:
+    def format_tools(self, mcp_tools: list[mcp.types.Tool]) -> list[llmir.Tool]:
 
-        tools: list[Tool] = []
+        tools: list[llmir.Tool] = []
 
         for mcp_tool in mcp_tools:
             tools.append(
-                Tool(
+                llmir.Tool(
                     name=mcp_tool.name,
                     description=mcp_tool.description or "",
                     input_schema=mcp_tool.inputSchema,
@@ -179,7 +194,7 @@ class AddMCPToolsNode[T: LLMState = LLMState, S: LLMShared = LLMShared](Node[T, 
         return tools
 
 
-class GetNewToolCallsNode[T: LLMState = LLMState, S: LLMShared = LLMShared](Node[T, S]):
+class ExtractNewToolCallsNode[T: LLMState = LLMState, S: LLMShared = LLMShared](Node[T, S]):
 
     async def run(self, state: T, shared: S) -> None:
         
@@ -207,12 +222,13 @@ class GetNextToolCallResultNode[T: LLMState = LLMState, S: LLMShared = LLMShared
             
             chunk = shared.llm_new_tool_calls.pop(0)
             
-            try:
+        try:
 
-                rprint(f"Executing function {chunk.name}")
+            rprint(f"Executing function {chunk.name}")
 
-                result = await self.run_function(shared, chunk)
+            result = await self.run_function(state, shared, chunk)
 
+            async with shared.lock:
                 shared.llm_new_tool_call_results.append(
                     (
                         chunk, 
@@ -220,25 +236,45 @@ class GetNextToolCallResultNode[T: LLMState = LLMState, S: LLMShared = LLMShared
                     )
                 )
 
-                rprint(f"Executed function {chunk.name}")
-                rprint(state)
+            rprint(f"Executed function {chunk.name}")
+            rprint(state)
+            rprint(shared)
 
-            except json.JSONDecodeError as e:
-                e.add_note(f"Error execution function {chunk.name} with arguments {chunk.arguments}")
-                raise e
+        except json.JSONDecodeError as e:
+            e.add_note(f"Error execution function {chunk.name} with arguments {chunk.arguments}")
+            raise e
                     
 
 
-    async def run_function(self, shared: S, chunk: AIChunkToolCall) -> Any:
-        
-
+    async def run_function(self, state: T, shared: S, chunk: AIChunkToolCall) -> Any:
+    
         func = shared.llm_tool_functions[chunk.name]
-        result = func(**chunk.arguments)
+        sig = inspect.signature(func)
+
+        bound = sig.bind_partial(**chunk.arguments)
+
+        print(bound)
+
+        for name, param in sig.parameters.items():
+            ann = param.annotation
+
+            if name in bound.arguments:
+                continue
+
+            if isinstance(ann, type) and issubclass(ann, State):
+                if not issubclass(type(state), ann):
+                    raise ValueError(f"Function {chunk.name} requires state of type {ann}, but {type(state)} is not a subtype") # Type safety
+                bound.arguments[name] = state
+
+            elif isinstance(ann, type) and issubclass(ann, Shared):
+                if not issubclass(type(shared), ann):
+                    raise ValueError(f"Function {chunk.name} requires shared state of type {ann}, but {type(shared)} is not a subtype") # Type safety
+                bound.arguments[name] = shared
+
+        result = func(*bound.args, **bound.kwargs)
 
         if inspect.iscoroutine(result):
             result = await result
-
-        print(result)
 
         return result
 

@@ -1,7 +1,7 @@
 from llmir import AIMessageToolResponse
 from edgygraph import Graph, START, END, Node
 from logger import setup_logger
-from edgynodes.llm import LLMNodeAzure, LLMNodeOllama, LLMNodeClaude, GetNewToolCallsNode, GetNextToolCallResultNode, IntegrateToolResultsNode, IntegrateMCPToolResultsNode, AddToolsNode, SaveNewMessagesNode, LLMNodeGemini, LLMNodeMistral, AddMCPToolsNode, LLMNodeOpenAI
+from edgynodes.llm import LLMNodeAzure, LLMNodeOllama, LLMNodeClaude, ExtractNewToolCallsNode, GetNextToolCallResultNode, IntegrateToolResultsNode, IntegrateMCPToolResultsNode, AddToolsNode, SaveNewMessagesNode, LLMNodeGemini, LLMNodeMistral, AddMCPToolsNode, LLMNodeOpenAI
 from edgynodes.discord import StartTypingNode, StopTypingNode, DiscordTemporaryMessageController
 from edgynodes.discord_llm import DiscordLLMState, DiscordLLMShared, BuildChatNode, RespondNode
 from random import randint
@@ -194,7 +194,7 @@ async def handle_message(message: discord.Message, bot: commands.Bot) -> None:
     stop_typing = StopTypingNode()
     add_tools = AddToolsNode([role_dice])
     add_mcp = AddMCPToolsNode(mcp_client)
-    get_new_tool_calls = GetNewToolCallsNode()
+    get_new_tool_calls = ExtractNewToolCallsNode()
     get_next_tool_call_result = GetNextToolCallResultNode()
     clear_tmp_discord_messages = ClearTmpDiscordMessagesNode()
     integrate_tool_call_results = IntegrateToolResultsNode()

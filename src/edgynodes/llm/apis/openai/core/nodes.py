@@ -1,127 +1,27 @@
-from types import TracebackType
-from .base import LLMNode, LLMState, LLMShared, LLMStream
-
-from openai import AsyncOpenAI as OpenAI
-from openai.types.chat import ChatCompletionChunk, ChatCompletionFunctionToolParam, ChatCompletion
-from openai.types.chat.chat_completion_chunk import ChoiceDeltaToolCall
-
-from typing import AsyncIterator, AsyncGenerator, TypedDict
-
-from llmir import AIMessages, AIRoles, AIChunkText, AIChunkImageURL, Tool, AIChunks, AIChunkToolCall, AIMessage
+from llmir import AIMessages, AIMessage, AIChunkText, AIChunkImageURL, AIChunks, AIRoles, Tool, AIChunkToolCall
 from llmir.adapter import to_openai, OpenAIMessages
+from typing import AsyncIterator
+from openai import AsyncOpenAI
+from openai.types.chat import ChatCompletionChunk, ChatCompletionFunctionToolParam, ChatCompletion
+import json
 import requests
 import base64
-import json
 
-class ToolCallDict(TypedDict):
-    id: str
-    name: str
-    arguments: str
+from edgynodes.llm.core.nodes import LLMNode, LLMState, LLMShared # type: ignore
+from .streams import OpenAIStream
 
 
-class OpenAIStream(LLMStream):
 
-    iterator: AsyncGenerator[ChatCompletionChunk]
-
-    _tool_calls: dict[int, ToolCallDict]
-
-    def __init__(self, iterator: AsyncGenerator[ChatCompletionChunk]) -> None:
-        super().__init__() 
-        
-        self.iterator = iterator
-
-        self._tool_calls = {}
-
-    async def __anext__(self) -> AIChunks:
-
-        if self.abort.is_set():
-            print("Aborting Stream")
-            raise StopAsyncIteration
-
-        formatted: AIChunks | None = None
-
-        chunk: ChatCompletionChunk
-
-        while not formatted:
-            
-            try:
-                chunk = await self.iterator.__anext__()
-            
-            except StopAsyncIteration:
-
-                if self._tool_calls:
-                    lowest_index = min(self._tool_calls)
-                    tool_call_dict = self._tool_calls.pop(lowest_index)
-
-                    return AIChunkToolCall(
-                        id=tool_call_dict["id"],
-                        name=tool_call_dict["name"],
-                        arguments=json.loads(tool_call_dict["arguments"])
-                    )
-
-                raise StopAsyncIteration
-            
-            delta = chunk.choices[0].delta
-
-            if delta.content:
-                formatted = AIChunkText(
-                    text=delta.content
-                )
-            
-                
-            if delta.tool_calls:
-                self.integrate_tool_calls(delta.tool_calls)
-
-                        
-                
-        return formatted
-    
-
-    def integrate_tool_calls(self, tool_calls: list[ChoiceDeltaToolCall]) -> None:
-
-        for tool_call in tool_calls:
-
-                    if tool_call.index not in self._tool_calls:
-                        
-                        self._tool_calls[tool_call.index] = ToolCallDict(
-                            id="",
-                            name="",
-                            arguments="",
-                        )
-
-                    if tool_call.id:
-                        self._tool_calls[tool_call.index]["id"] = tool_call.id
-
-                    if function := tool_call.function:
-
-                        if function.name:
-                            self._tool_calls[tool_call.index]["name"] = function.name
-
-                        if function.arguments:
-                            self._tool_calls[tool_call.index]["arguments"] += function.arguments
-
-
-        
-    
-    async def __aexit__(self, exc_type: type[BaseException] | None, exc: BaseException | None, tb: TracebackType | None) -> None:
-        return await super().__aexit__(exc_type, exc, tb)
-    
-    async def aclose(self) -> None:
-        await super().aclose()
-        await self.iterator.close() # type:ignore 
-        print("aclose called")
-        pass
-        
 
 class LLMNodeOpenAI[T: LLMState = LLMState, S: LLMShared = LLMShared](LLMNode[T, S]):
 
-    client: OpenAI
+    client: AsyncOpenAI
     extra_body: dict[str, object] | None
 
     def __init__(self, model: str, api_key: str, base_url: str = "https://api.openai.com/v1", enable_streaming: bool = False, extra_body: dict[str, object] | None = None) -> None:
         super().__init__(model, enable_streaming)
 
-        self.client = OpenAI(api_key=api_key, base_url=base_url)
+        self.client = AsyncOpenAI(api_key=api_key, base_url=base_url)
         self.extra_body = extra_body
 
 
@@ -131,7 +31,7 @@ class LLMNodeOpenAI[T: LLMState = LLMState, S: LLMShared = LLMShared](LLMNode[T,
 
         if not self.enable_streaming:
 
-            response = await self.client.chat.completions.create(
+            response: ChatCompletion = await self.client.chat.completions.create(
                 model=self.model,
                 messages=self.format_messages(chat), # type: ignore
                 tools=self.format_tools(state.llm_tools),

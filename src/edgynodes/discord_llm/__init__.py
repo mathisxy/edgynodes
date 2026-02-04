@@ -1,4 +1,5 @@
-from .text_channel_llm_base import DiscordLLMState, DiscordLLMShared, BuildChatNode, RespondNode
+from .core.nodes import BuildChatNode, RespondNode
+from .core.states import DiscordLLMState, DiscordLLMShared
 
 __all__ = [
     "DiscordLLMState",

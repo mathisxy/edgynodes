@@ -1,9 +1,10 @@
-from .text_channel_base import DiscordState, DiscordShared, DiscordTypingManager, StartTypingNode, StopTypingNode
-from .temporary_message_controller import DiscordTemporaryMessageController, KeyNotFound
+from .core.nodes import StartTypingNode, StopTypingNode
+from .core.states import DiscordTextState, DiscordTextShared, DiscordTypingManager
+from .utils.temporary_message_controller import DiscordTemporaryMessageController, KeyNotFound
 
 __all__ = [
-    "DiscordState",
-    "DiscordShared",
+    "DiscordTextState",
+    "DiscordTextShared",
 
     "DiscordTypingManager",
     "StartTypingNode",

@@ -22,7 +22,7 @@ class DiscordTemporaryMessageController:
             files: discord.File | list[discord.File] | None = None, 
             delete_after: float | None = None, 
             allowed_mentions: discord.AllowedMentions | None = None, 
-            view: discord.ui.View | discord.ui.LayoutView | None = None,
+            view: discord.ui.View | None = None,
             fail_if_not_exists: bool = False,
             ) -> None:
         

@@ -1,5 +1,5 @@
-from .base import Supports
-from .openai import LLMNodeOpenAI
+from edgynodes.llm.core.nodes import Supports
+from .core.nodes import LLMNodeOpenAI
 
 class LLMNodeGemini(LLMNodeOpenAI):
 

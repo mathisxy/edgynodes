@@ -1,27 +1,13 @@
 from edgygraph import Node, Stream
-from edgynodes.llm import LLMState, LLMShared
-from edgynodes.discord import DiscordState, DiscordShared
-
-from llmir import AIMessage, AIRoles, AIChunks, AIChunkFile, AIChunkText, AIChunkImageURL, AIMessageToolResponse, AIChunkToolCall
 from discord.abc import Messageable
 from discord import Message
-
-import mimetypes
+from llmir import AIMessage, AIChunks, AIChunkText, AIChunkFile, AIChunkImageURL, AIMessageToolResponse, AIChunkToolCall, AIRoles
 import discord
+import mimetypes
 import io
 import time
 
-
-### STATE, SHARED
-
-class DiscordLLMState(LLMState, DiscordState):
-    pass
-
-class DiscordLLMShared(LLMShared, DiscordShared):
-    pass
-
-
-### NODES
+from .states import DiscordLLMState, DiscordLLMShared
 
 class BuildChatNode(Node[DiscordLLMState, DiscordLLMShared]):
 
@@ -94,10 +80,10 @@ class BuildChatNode(Node[DiscordLLMState, DiscordLLMShared]):
         if embed.footer and embed.footer.text:
             chunks.append(AIChunkText(text=f"__{embed.footer.text}__"))
 
-        if embed.image.url:
+        if embed.image:
             chunks.append(AIChunkImageURL(url=embed.image.url))
 
-        if embed.video.url: # Not supported currently
+        if embed.video: # Not supported currently
             chunks.append(AIChunkText(text=embed.video.url))
         
         return chunks
@@ -217,7 +203,7 @@ class RespondNode(Node[DiscordLLMState, DiscordLLMShared]):
             case AIChunkImageURL():
                 return [await channel.send(content=chunk.url)]
             case AIChunkToolCall():
-                formatted_args: dict[str, object] = {k.replace("_", " ").capitalize(): v for k, v in chunk.arguments.items()}
+                formatted_args: dict[str, str] = {k.replace("_", " ").capitalize(): str(v) for k, v in chunk.arguments.items()}
                 embed = discord.Embed(title=chunk.name.replace("_", " ").title())
                 for key, value in formatted_args.items():
                     embed.add_field(name=key, value=value, inline=True)

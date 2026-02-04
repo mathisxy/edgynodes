@@ -1,4 +1,4 @@
-from .openai import LLMNodeOpenAI
+from .core.nodes import LLMNodeOpenAI
 
 class LLMNodeAzure(LLMNodeOpenAI):
 

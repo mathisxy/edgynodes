@@ -1,7 +1,12 @@
-from .openai import LLMNodeOpenAI
-from .base import Supports
+from .core.nodes import LLMNodeOpenAI
+from edgynodes.llm.core.nodes import Supports
 
 class LLMNodeOllama(LLMNodeOpenAI):
+    """
+    LLM Node for Ollama
+
+    Multiple tool calls per response when streaming is enabled are not handled correctly by the ollama api
+    """
 
     supports: Supports = Supports(
         remote_image_urls=False,
