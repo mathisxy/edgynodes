@@ -1,5 +1,5 @@
 from .core.nodes import LLMNode, Supports, AddMessageNode, SaveNewMessagesNode
-from .core.states import LLMState, LLMShared
+from .core.states import State, Shared
 from .core.streams import LLMStream
 
 from .core.tools import AddToolsNode, AddMCPToolsNode, ExtractNewToolCallsNode, GetNextToolCallResultNode, IntegrateToolResultsNode, IntegrateMCPToolResultsNode, MCPToolFunction
@@ -13,8 +13,8 @@ from .apis.openai import LLMNodeOllama
 from .apis.openai import LLMNodeClaude
 
 __all__ = [
-    "LLMState",
-    "LLMShared",
+    "State",
+    "Shared",
     "LLMNode",
     "Supports",
     "AddMessageNode",

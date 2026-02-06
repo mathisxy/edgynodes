@@ -1,16 +1,15 @@
-from edgygraph import State, Shared
-from discord import Message
+import edgygraph
 from discord.ext import commands
-from discord.abc import Messageable
 from discord.context_managers import Typing
+import discord
 from pydantic import Field
 
 
 class DiscordTypingManager:
 
-    _active: dict[Messageable, Typing] = {}
+    _active: dict[discord.abc.Messageable, Typing] = {}
 
-    async def start(self, channel: Messageable) -> None:
+    async def start(self, channel: discord.abc.Messageable) -> None:
         if channel in self._active:
             return
         
@@ -18,7 +17,7 @@ class DiscordTypingManager:
         await typing_ctx.__aenter__()
         self._active[channel] = typing_ctx
 
-    async def stop(self, channel: Messageable) -> None:
+    async def stop(self, channel: discord.abc.Messageable) -> None:
         if channel not in self._active:
             raise Exception(f"No typing context for channel {channel} found")
         
@@ -27,10 +26,12 @@ class DiscordTypingManager:
 
 
 
-class DiscordState(State):
+class State(edgygraph.State):
     pass
 
-class DiscordShared(Shared):
-    discord_message: Message
+class Shared(edgygraph.Shared):    
+
+    discord_text_channel: discord.abc.Messageable
+
     discord_bot: commands.Bot
     discord_typing: DiscordTypingManager = Field(default_factory=DiscordTypingManager)

@@ -1,9 +1,8 @@
-from edgynodes.discord import DiscordState, DiscordShared # type: ignore
-from edgynodes.llm import LLMState, LLMShared # type: ignore
+import edgynodes as e # type: ignore
 
 
-class DiscordLLMState(LLMState, DiscordState):
+class _State(e.discord.State, e.llm.State):
     pass
 
-class DiscordLLMShared(LLMShared, DiscordShared):
+class _Shared(e.discord.Shared, e.llm.Shared):
     pass

@@ -1,9 +1,9 @@
 from .core.nodes import RecordVoiceNode, LeaveVoiceChannelNode, JoinVoiceChannelNode
-from .core.states import DiscordVoiceState, DiscordVoiceShared
+from .core.states import State, Shared
 
 __all__ = [
-    "DiscordVoiceState",
-    "DiscordVoiceShared",
+    "State",
+    "Shared",
 
     "RecordVoiceNode",
     "JoinVoiceChannelNode",

@@ -27,9 +27,9 @@ class DiscordLLMTmpMsgShared(DiscordLLMShared):
 ### EDGES
 
 def should_react(shared: DiscordLLMShared) -> bool:
-    return shared.discord_message.author != shared.discord_bot.user and (   # Prevent reaction on self
-        shared.discord_bot.user in shared.discord_message.mentions          # Only when mentioned
-        or isinstance(shared.discord_message.channel, discord.DMChannel)    # Or when in DM
+    return shared.discord_last_message.author != shared.discord_bot.user and (   # Prevent reaction on self
+        shared.discord_bot.user in shared.discord_last_message.mentions          # Only when mentioned
+        or isinstance(shared.discord_last_message.channel, discord.DMChannel)    # Or when in DM
     )
 
 
@@ -182,7 +182,7 @@ async def handle_message(message: discord.Message, bot: commands.Bot) -> None:
 
     state = DiscordLLMState()
     shared = DiscordLLMTmpMsgShared(
-        discord_message=message, 
+        discord_last_message=message, 
         discord_bot=bot, 
         discord_temporary_message_controller=temporary_message_controller
     )

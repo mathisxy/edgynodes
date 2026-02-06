@@ -17,7 +17,7 @@ class StartTypingNode(Node[DiscordState, DiscordShared]):
         
         async with shared.lock:
 
-            channel: Messageable = self._channel or shared.discord_message.channel
+            channel: Messageable = self._channel or shared.discord_text_channel
 
             await shared.discord_typing.start(channel)
 
@@ -33,6 +33,6 @@ class StopTypingNode(Node[DiscordState, DiscordShared]):
         
         async with shared.lock:
 
-            channel: Messageable = self._channel or shared.discord_message.channel
+            channel: Messageable = self._channel or shared.discord_text_channel
 
             await shared.discord_typing.stop(channel)

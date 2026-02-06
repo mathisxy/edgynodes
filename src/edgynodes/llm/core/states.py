@@ -1,17 +1,17 @@
-from edgygraph import State, Shared
+import edgygraph
 from llmir import AIMessages, Tool, AIChunkToolCall
 from pydantic import Field
 from typing import Callable, Any, Tuple
 from .streams import LLMStream
 
-class LLMState(State):
+class State(edgygraph.State):
     llm_messages: list[AIMessages] = Field(default_factory=list[AIMessages])
     llm_new_messages: list[AIMessages] = Field(default_factory=list[AIMessages])
 
     llm_tools: list[Tool] = Field(default_factory=list[Tool])
 
 
-class LLMShared(Shared):
+class Shared(edgygraph.Shared):
     llm_stream: LLMStream | None = None
 
     llm_tool_functions: dict[str, Callable[..., Any]] = Field(default_factory=dict[str, Callable[..., Any]]) # name -> function

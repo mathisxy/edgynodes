@@ -7,9 +7,9 @@ import mimetypes
 import io
 import time
 
-from .states import DiscordLLMState, DiscordLLMShared
+from .states import State, Shared
 
-class BuildChatNode(Node[DiscordLLMState, DiscordLLMShared]):
+class BuildChatNode(Node[State, Shared]):
 
     include_embeds: bool
     include_attachments: bool
@@ -20,12 +20,12 @@ class BuildChatNode(Node[DiscordLLMState, DiscordLLMShared]):
         self.include_attachments = include_attachments
 
 
-    async def run(self, state: DiscordLLMState, shared: DiscordLLMShared) -> None:
+    async def run(self, state: State, shared: Shared) -> None:
 
         chat: list[AIMessage] = []
 
         async with shared.lock:
-            channel = shared.discord_message.channel
+            channel = shared.discord_text_channel
             bot = shared.discord_bot
 
         async for msg in channel.history(limit=20, oldest_first=False):
@@ -89,12 +89,12 @@ class BuildChatNode(Node[DiscordLLMState, DiscordLLMShared]):
         return chunks
 
 
-class RespondNode(Node[DiscordLLMState, DiscordLLMShared]):
+class RespondNode(Node[State, Shared]):
     
-    async def run(self, state: DiscordLLMState, shared: DiscordLLMShared) -> None:
+    async def run(self, state: State, shared: Shared) -> None:
 
         async with shared.lock:
-            channel = shared.discord_message.channel
+            channel = shared.discord_text_channel
         
         for message in state.llm_new_messages:                
             

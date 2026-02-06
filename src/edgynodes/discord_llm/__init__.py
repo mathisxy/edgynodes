@@ -1,9 +1,9 @@
 from .core.nodes import BuildChatNode, RespondNode
-from .core.states import DiscordLLMState, DiscordLLMShared
+from .core.states import CombinedShared, CombinedState
 
 __all__ = [
-    "DiscordLLMState",
-    "DiscordLLMShared",
+    "CombinedState",
+    "CombinedShared",
     
     "BuildChatNode",
     "RespondNode",

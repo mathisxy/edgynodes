@@ -1,7 +1,7 @@
 from edgygraph import Node
 from llmir import AIMessages
 from pydantic import BaseModel
-from .states import LLMState, LLMShared    
+from .states import State, Shared
 
 
 class Supports(BaseModel):
@@ -12,7 +12,7 @@ class Supports(BaseModel):
     remote_image_urls: bool = True
 
 
-class LLMNode[T: LLMState = LLMState, S: LLMShared = LLMShared](Node[T, S]):
+class LLMNode[T: State = State, S: Shared = Shared](Node[T, S]):
 
     model: str
     enable_streaming: bool = False
@@ -27,7 +27,7 @@ class LLMNode[T: LLMState = LLMState, S: LLMShared = LLMShared](Node[T, S]):
 
 
 
-class AddMessageNode[T: LLMState = LLMState, S: LLMShared = LLMShared](Node[T, S]):
+class AddMessageNode[T: State = State, S: Shared = Shared](Node[T, S]):
 
     message: AIMessages
 
@@ -43,7 +43,7 @@ class AddMessageNode[T: LLMState = LLMState, S: LLMShared = LLMShared](Node[T, S
         )
 
 
-class SaveNewMessagesNode[T: LLMState = LLMState, S: LLMShared = LLMShared](Node[T, S]):
+class SaveNewMessagesNode[T: State = State, S: Shared = Shared](Node[T, S]):
 
     async def run(self, state: T, shared: S) -> None:
 

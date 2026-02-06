@@ -13,8 +13,7 @@ import fastmcp
 import base64
 import mimetypes
 
-from .states import LLMState, LLMShared
-
+import edgynodes as e # type: ignore
 
 class MCPToolFunction:
 
@@ -69,7 +68,7 @@ class ToolContext:
         )
 
 
-class AddToolsNode[T: LLMState = LLMState, S: LLMShared = LLMShared](Node[T, S]): #TODO make it make sense
+class AddToolsNode[T: e.llm.State = e.llm.State, S: e.llm.Shared = e.llm.Shared](Node[T, S]): #TODO make it make sense
 
     tools: dict[str, Tuple[Callable[..., Any], llmir.Tool]]
 
@@ -139,7 +138,7 @@ class AddToolsNode[T: LLMState = LLMState, S: LLMShared = LLMShared](Node[T, S])
     
 
 
-class AddMCPToolsNode[T: LLMState = LLMState, S: LLMShared = LLMShared](Node[T, S]):
+class AddMCPToolsNode[T: e.llm.State = e.llm.State, S: e.llm.Shared = e.llm.Shared](Node[T, S]):
 
     client: fastmcp.Client[Any]
 
@@ -194,7 +193,7 @@ class AddMCPToolsNode[T: LLMState = LLMState, S: LLMShared = LLMShared](Node[T, 
         return tools
 
 
-class ExtractNewToolCallsNode[T: LLMState = LLMState, S: LLMShared = LLMShared](Node[T, S]):
+class ExtractNewToolCallsNode[T: e.llm.State = e.llm.State, S: e.llm.Shared = e.llm.Shared](Node[T, S]):
 
     async def run(self, state: T, shared: S) -> None:
         
@@ -210,7 +209,7 @@ class ExtractNewToolCallsNode[T: LLMState = LLMState, S: LLMShared = LLMShared](
                         
 
 
-class GetNextToolCallResultNode[T: LLMState = LLMState, S: LLMShared = LLMShared](Node[T, S]):
+class GetNextToolCallResultNode[T: e.llm.State = e.llm.State, S: e.llm.Shared = e.llm.Shared](Node[T, S]):
 
 
     async def run(self, state: T, shared: S) -> None:
@@ -282,7 +281,7 @@ class GetNextToolCallResultNode[T: LLMState = LLMState, S: LLMShared = LLMShared
 
 
 
-class IntegrateToolResultsNode[T: LLMState = LLMState, S: LLMShared = LLMShared](Node[T, S]):
+class IntegrateToolResultsNode[T: e.llm.State = e.llm.State, S: e.llm.Shared = e.llm.Shared](Node[T, S]):
 
     async def run(self, state: T, shared: S) -> None:
 
@@ -316,7 +315,7 @@ class IntegrateToolResultsNode[T: LLMState = LLMState, S: LLMShared = LLMShared]
         )
     
 
-class IntegrateMCPToolResultsNode[T: LLMState = LLMState, S: LLMShared = LLMShared](Node[T, S]):
+class IntegrateMCPToolResultsNode[T: e.llm.State = e.llm.State, S: e.llm.Shared = e.llm.Shared](Node[T, S]):
 
     async def run(self, state: T, shared: S) -> None:
 
