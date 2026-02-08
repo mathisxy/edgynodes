@@ -1,11 +1,11 @@
-from .core.states import DiscordVoiceLLMState, DiscordVoiceLLMShared
-from .mistral import SpeechToTextMistralNode
+from .states import Shared, State
+from .nodes.transcriptions_to_ai import TranscriptionsToAINode
 
 
 __all__ = [
-    "DiscordVoiceLLMState",
-    "DiscordVoiceLLMShared",
+    "State",
+    "Shared",
 
-    "SpeechToTextMistralNode",
+    "TranscriptionsToAINode",
 
 ]

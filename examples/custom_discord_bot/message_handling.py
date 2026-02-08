@@ -1,8 +1,8 @@
 from llmir import AIMessageToolResponse
 from edgygraph import Graph, START, END, Node
 from logger import setup_logger
-from edgynodes.llm import LLMNodeAzure, LLMNodeOllama, LLMNodeClaude, ExtractNewToolCallsNode, GetNextToolCallResultNode, IntegrateToolResultsNode, IntegrateMCPToolResultsNode, AddToolsNode, SaveNewMessagesNode, LLMNodeGemini, LLMNodeMistral, AddMCPToolsNode, LLMNodeOpenAI
-from edgynodes.discord import StartTypingNode, StopTypingNode, DiscordTemporaryMessageController
+from edgynodes.llm import LLMAzureNode, LLMOllamaNode, LLMClaudeNode, ExtractNewToolCallsNode, GetNextToolCallResultNode, IntegrateToolResultsNode, IntegrateMCPToolResultsNode, AddToolsNode, SaveNewMessagesNode, LLMGeminiNode+, LLMMistralNode, AddMCPToolsNode, LLMNodeOpenAI
+from edgynodes.discord import StartTypingNode, StopTypingNode, TemporaryMessageController
 from edgynodes.discord_llm import DiscordLLMState, DiscordLLMShared, BuildChatNode, RespondNode
 from random import randint
 import io
@@ -21,7 +21,7 @@ logger = setup_logger(__name__)
 
 class DiscordLLMTmpMsgShared(DiscordLLMShared):
     
-    discord_temporary_message_controller: DiscordTemporaryMessageController
+    discord_temporary_message_controller: TemporaryMessageController
 
 
 ### EDGES
@@ -103,7 +103,7 @@ class ProgressController:
         return discord.Color.from_rgb(red, green, blue)
     
     @classmethod
-    async def update_progress(cls, tmp_controller: DiscordTemporaryMessageController, progress: float, total: float | None, key: str = "progress") -> None:
+    async def update_progress(cls, tmp_controller: TemporaryMessageController, progress: float, total: float | None, key: str = "progress") -> None:
         progress_bar = cls.create_progress_bar(progress, total)
         
         embed = discord.Embed(
@@ -125,7 +125,7 @@ class ProgressController:
 
 
     @classmethod
-    async def update_preview(cls, tmp_controller: DiscordTemporaryMessageController, image: discord.File, key: str = "progress") -> None:
+    async def update_preview(cls, tmp_controller: TemporaryMessageController, image: discord.File, key: str = "progress") -> None:
 
         embed = discord.Embed(
             title="Progress",
@@ -144,7 +144,7 @@ class ProgressController:
 
 async def handle_message(message: discord.Message, bot: commands.Bot) -> None:
 
-    temporary_message_controller = DiscordTemporaryMessageController(message.channel)
+    temporary_message_controller = TemporaryMessageController(message.channel)
 
 
     # Log Handler for custom MCP Server
@@ -173,11 +173,11 @@ async def handle_message(message: discord.Message, bot: commands.Bot) -> None:
     mcp_client = fastmcp.Client("http://localhost:8001/mcp", log_handler=log_handler, progress_handler=progress_handler)
 
     openai = LLMNodeOpenAI(model="gpt-5.1", api_key=os.getenv("OPENAI_API_KEY", ""), enable_streaming=True)
-    claude = LLMNodeClaude(model="claude-haiku-4-5-20251001", api_key=os.getenv("CLAUDE_API_KEY", ""), enable_streaming=True)
-    gemini = LLMNodeGemini(model="gemini-3-flash-preview", api_key=os.getenv("GEMINI_API_KEY", ""),enable_streaming=True)
-    mistral = LLMNodeMistral(model="mistral-medium-latest", api_key=os.getenv("MISTRAL_API_KEY", ""), enable_streaming=True)
-    azure = LLMNodeAzure(model="", api_key=os.getenv("AZURE_API_KEY", ""), base_url=os.getenv("AZURE_BASE_URL", ""), enable_streaming=True)
-    ollama = LLMNodeOllama(model="ministral-3:8b", enable_streaming=True)
+    claude = LLMClaudeNode(model="claude-haiku-4-5-20251001", api_key=os.getenv("CLAUDE_API_KEY", ""), enable_streaming=True)
+    gemini = LLMGeminiNode+(model="gemini-3-flash-preview", api_key=os.getenv("GEMINI_API_KEY", ""),enable_streaming=True)
+    mistral = LLMMistralNode(model="mistral-medium-latest", api_key=os.getenv("MISTRAL_API_KEY", ""), enable_streaming=True)
+    azure = LLMAzureNode(model="", api_key=os.getenv("AZURE_API_KEY", ""), base_url=os.getenv("AZURE_BASE_URL", ""), enable_streaming=True)
+    ollama = LLMOllamaNode(model="ministral-3:8b", enable_streaming=True)
 
 
     state = DiscordLLMState()

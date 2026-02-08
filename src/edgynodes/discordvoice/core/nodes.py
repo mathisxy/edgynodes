@@ -1,18 +1,22 @@
 from edgygraph import Node
+from typing import Callable
 import discord
+import time
 import asyncio
 
-from .states import DiscordVoiceState, DiscordVoiceShared
+from ..states import State, Shared
+from ..utils.vad_wave_sink import VADWaveSink
 
 
-class JoinVoiceChannelNode(Node[DiscordVoiceState, DiscordVoiceShared]):
+
+class JoinVoiceChannelNode(Node[State, Shared]):
 
 
-    async def run(self, state: DiscordVoiceState, shared: DiscordVoiceShared) -> None:
+    async def run(self, state: State, shared: Shared) -> None:
 
         async with shared.lock:
-            voice_channel = shared.discord_voice_channel
-            voice_client = shared.discord_voice_client
+            voice_channel = shared.discordvoice.channel
+            voice_client = shared.discordvoice.client
 
         if voice_client and voice_client.is_connected():
             return  # Already connected
@@ -20,54 +24,161 @@ class JoinVoiceChannelNode(Node[DiscordVoiceState, DiscordVoiceShared]):
         await voice_channel.connect()
 
         async with shared.lock:
-            shared.discord_voice_client = voice_client
+            shared.discordvoice.client = voice_client
 
 
-class LeaveVoiceChannelNode(Node[DiscordVoiceState, DiscordVoiceShared]):
+class LeaveVoiceChannelNode(Node[State, Shared]):
 
-    async def run(self, state: DiscordVoiceState, shared: DiscordVoiceShared) -> None:
+    async def run(self, state: State, shared: Shared) -> None:
         async with shared.lock:
-            voice_client = shared.discord_voice_client
+            voice_client = shared.discordvoice.client
 
         if voice_client and voice_client.is_connected():
             await voice_client.disconnect()
 
         async with shared.lock:
-            shared.discord_voice_client = None
+            shared.discordvoice.client = None
 
 
 
-class RecordVoiceNode(Node[DiscordVoiceState, DiscordVoiceShared]):
+class StartRecordVoiceNode(Node[State, Shared]):
 
-    finished_recording: asyncio.Event = asyncio.Event()
+    sink_factory: Callable[..., discord.sinks.Sink]
+    delay: float
 
-    async def run(self, state: DiscordVoiceState, shared: DiscordVoiceShared) -> None:
-        if not shared.discord_voice_client:
-            raise RuntimeError("Not connected to a voice channel.")
+    def __init__(self, sink_factory: Callable[..., discord.sinks.Sink] | None = None, delay: float = 0) -> None:
         
+        self.sink_factory = sink_factory or (lambda: discord.sinks.WaveSink())
+        self.delay = delay
+
+    async def run(self, state: State, shared: Shared) -> None:
+        
+        sink = self.sink_factory()
+
         async with shared.lock:
-            voice_client = shared.discord_voice_client
+            voice_client = shared.discordvoice.client
+            finished_flag = shared.discordvoice.recording_finished
+
+            shared.discordvoice.sink = sink
+
         
         if not voice_client:
-            raise Exception("Need to be in a voice channel to start recording!")
-            
+            raise Exception("Need to be in a voice channel to start recording.")
+        
+        finished_flag.clear()
+
+        async def on_done(sink: discord.sinks.Sink):
+            finished_flag.set()
+
+        if self.delay:
+            await asyncio.sleep(self.delay)
 
         voice_client.start_recording( # type: ignore
-            discord.sinks.WaveSink(),  # The sink type to use.
-            self.handle_voice,  # What to do once done.
-            shared,
+            sink,  # The sink to use.
+            on_done,
         )
 
-        await self.finished_recording.wait()
+class StopRecordVoiceNode(Node[State, Shared]):
 
-
-    async def handle_voice(self, sink: discord.sinks.WaveSink, shared: DiscordVoiceShared) -> None:
+    async def run(self, state: State, shared: Shared) -> None:
 
         async with shared.lock:
-            shared.discord_voice_sink = sink
+            voice_client = shared.discordvoice.client
+
+        if not voice_client:
+            raise Exception("Need to be in a voice channel to stop recording.")
         
-        self.finished_recording.set()
-        
+        voice_client.stop_recording()
+
+    
 
         
+
+class AwaitRecordVoiceStopNode(Node[State, Shared]):
+
+    async def run(self, state: State, shared: Shared) -> None:
+        
+        async with shared.lock:
+            finished_flag = shared.discordvoice.recording_finished
+
+        await finished_flag.wait()
+
+        print("Recording finished!")
+
+
+class AwaitVoiceStartVADNode(Node[State, Shared]):
+
+    async def run(self, state: State, shared: Shared) -> None:
+
+        async with shared.lock:
+            voice_client = shared.discordvoice.client
+            sink = shared.discordvoice.sink
+            recording_finished = shared.discordvoice.recording_finished
+
+        if not voice_client:
+            raise Exception("Need to be in a voice channel.")
+        
+        if not sink or not voice_client.recording:
+            raise Exception("Need to start recording first.")
+        
+        if not isinstance(sink, VADWaveSink):
+            raise Exception("Sink is not a edgynodes.discordvoice VADWaveSink.")
+        
+        start = time.monotonic()
+
+        await self.monitor_voice(sink.received_voice, recording_finished)
+
+        print(f"Waited for voice for {time.monotonic() - start} seconds")
+
+    
+    async def monitor_voice(self, recorded_voice: asyncio.Event, recording_finished: asyncio.Event) -> None:
+
+        voice = asyncio.create_task(recorded_voice.wait())
+        abort = asyncio.create_task(recording_finished.wait())  
+
+        _, pending = await asyncio.wait(
+            [voice, abort],
+            return_when=asyncio.FIRST_COMPLETED
+        )
+
+        for t in pending:
+            t.cancel()
+
+
+
+class AwaitVoiceStopVADNode(Node[State, Shared]):
+
+    silence_timeout: float 
+
+    def __init__(self, silence_timeout: float = 1) -> None:
+
+        self.silence_timeout = silence_timeout
+        
+
+    async def run(self, state: State, shared: Shared) -> None:
+
+        async with shared.lock:
+            voice_client = shared.discordvoice.client
+            sink = shared.discordvoice.sink
+
+        if not voice_client:
+            raise Exception("Need to be in a voice channel.")
+        
+        if not sink or not voice_client.recording:
+            raise Exception("Need to start recording first.")
+        
+        if not isinstance(sink, VADWaveSink):
+            raise Exception("Sink is not a edgynodes.discordvoice VADWaveSink.")
+        
+        await self.monitor_silence(voice_client, sink)
+        
+
+    
+    async def monitor_silence(self, voice_client: discord.VoiceClient, sink: VADWaveSink):
+
+        while voice_client.recording:
+            if time.monotonic() - sink.last_voice > self.silence_timeout:
+                break
+
+            await asyncio.sleep(0.1)
 

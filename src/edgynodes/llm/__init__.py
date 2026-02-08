@@ -1,34 +1,36 @@
 from .core.nodes import LLMNode, Supports, AddMessageNode, SaveNewMessagesNode
-from .core.states import State, Shared
+from .states import State, Shared, StateAttribute, SharedAttribute
 from .core.streams import LLMStream
 
 from .core.tools import AddToolsNode, AddMCPToolsNode, ExtractNewToolCallsNode, GetNextToolCallResultNode, IntegrateToolResultsNode, IntegrateMCPToolResultsNode, MCPToolFunction
 
-from .apis.openai import LLMNodeOpenAI, OpenAIStream
+from .apis.openai import LLMOpenAINode, OpenAIStream
 
-from .apis.openai import LLMNodeAzure
-from .apis.openai import LLMNodeGemini
-from .apis.openai import LLMNodeMistral
-from .apis.openai import LLMNodeOllama
-from .apis.openai import LLMNodeClaude
+from .apis.openai import LLMAzureNode
+from .apis.openai import LLMGeminiNode
+from .apis.openai import LLMMistralNode
+from .apis.openai import LLMOllamaNode
+from .apis.openai import LLMClaudeNode
 
 __all__ = [
     "State",
     "Shared",
+    "StateAttribute",
+    "SharedAttribute",
     "LLMNode",
     "Supports",
     "AddMessageNode",
     "SaveNewMessagesNode",
     "LLMStream",
 
-    "LLMNodeOpenAI",
+    "LLMOpenAINode",
     "OpenAIStream",
 
-    "LLMNodeAzure",
-    "LLMNodeGemini",
-    "LLMNodeMistral",
-    "LLMNodeOllama",
-    "LLMNodeClaude",
+    "LLMAzureNode",
+    "LLMGeminiNode",
+    "LLMMistralNode",
+    "LLMOllamaNode",
+    "LLMClaudeNode",
 
     "AddToolsNode",
     "AddMCPToolsNode",

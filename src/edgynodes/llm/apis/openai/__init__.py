@@ -1,17 +1,17 @@
-from .core.nodes import LLMNodeOpenAI
+from .core.nodes import LLMOpenAINode
 from .core.streams import OpenAIStream
-from .azure import LLMNodeAzure
-from .gemini import LLMNodeGemini
-from .mistral import LLMNodeMistral
-from .ollama import LLMNodeOllama
-from .anthropic import LLMNodeClaude
+from .azure import LLMAzureNode
+from .gemini import LLMGeminiNode
+from .mistral import LLMMistralNode
+from .ollama import LLMOllamaNode
+from .anthropic import LLMClaudeNode
 
 __all__ = [
-    "LLMNodeOpenAI",
+    "LLMOpenAINode",
     "OpenAIStream",
-    "LLMNodeAzure",
-    "LLMNodeGemini",
-    "LLMNodeMistral",
-    "LLMNodeOllama",
-    "LLMNodeClaude",
+    "LLMAzureNode",
+    "LLMGeminiNode",
+    "LLMMistralNode",
+    "LLMOllamaNode",
+    "LLMClaudeNode",
 ]

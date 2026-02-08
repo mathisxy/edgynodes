@@ -1,7 +1,7 @@
-from .core.nodes import LLMNodeOpenAI
-from edgynodes.llm.core.nodes import Supports
+from .core.nodes import LLMOpenAINode
+from edgynodes.llm.core.nodes import Supports # type: ignore
 
-class LLMNodeOllama(LLMNodeOpenAI):
+class LLMOllamaNode(LLMOpenAINode):
     """
     LLM Node for Ollama
 

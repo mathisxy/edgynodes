@@ -26,12 +26,21 @@ class DiscordTypingManager:
 
 
 
-class State(edgygraph.State):
+class StateAttribute(edgygraph.StateAttribute):
     pass
 
-class Shared(edgygraph.Shared):    
+class SharedAttribute(edgygraph.SharedAttribute):    
 
-    discord_text_channel: discord.abc.Messageable
+    text_channel: discord.abc.Messageable
 
-    discord_bot: commands.Bot
-    discord_typing: DiscordTypingManager = Field(default_factory=DiscordTypingManager)
+    bot: commands.Bot
+    typing: DiscordTypingManager = Field(default_factory=DiscordTypingManager)
+
+
+class State(edgygraph.State):
+
+    discord: StateAttribute
+
+class Shared(edgygraph.Shared):
+
+    discord: SharedAttribute

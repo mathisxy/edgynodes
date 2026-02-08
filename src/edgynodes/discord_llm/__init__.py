@@ -1,10 +1,9 @@
 from .core.nodes import BuildChatNode, RespondNode
-from .core.states import CombinedShared, CombinedState
+from .states import State, Shared
 
-__all__ = [
-    "CombinedState",
-    "CombinedShared",
-    
+__all__ = [   
+    "State",
+    "Shared",
     "BuildChatNode",
     "RespondNode",
 ]

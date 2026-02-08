@@ -1,7 +1,7 @@
-from edgynodes.llm.core.nodes import Supports
-from .core.nodes import LLMNodeOpenAI
+from edgynodes.llm.core.nodes import Supports # type: ignore
+from .core.nodes import LLMOpenAINode
 
-class LLMNodeGemini(LLMNodeOpenAI):
+class LLMGeminiNode(LLMOpenAINode):
 
 
     supports: Supports = Supports(

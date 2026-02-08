@@ -1,7 +1,7 @@
 from edgygraph import Node
 from llmir import AIMessages
 from pydantic import BaseModel
-from .states import State, Shared
+from ..states import State, Shared
 
 
 class Supports(BaseModel):
@@ -38,7 +38,7 @@ class AddMessageNode[T: State = State, S: Shared = Shared](Node[T, S]):
 
     async def run(self, state: T, shared: S) -> None:
     
-        state.llm_messages.append(
+        state.llm.messages.append(
             self.message
         )
 
@@ -49,6 +49,6 @@ class SaveNewMessagesNode[T: State = State, S: Shared = Shared](Node[T, S]):
 
         print("Saving new messages to messages")
         
-        state.llm_messages.extend(state.llm_new_messages)
+        state.llm.messages.extend(state.llm.new_messages)
 
-        state.llm_new_messages = []
+        state.llm.new_messages = []

@@ -82,13 +82,13 @@ class AddToolsNode[T: e.llm.State = e.llm.State, S: e.llm.Shared = e.llm.Shared]
         async with shared.lock:
             for key, value in self.tools.items():
                 
-                if key in shared.llm_tool_functions:
+                if key in shared.llm.tool_functions:
                     raise Exception(f"Duplicate function name: {key}")
                 
                 function, tool = value
 
-                shared.llm_tool_functions[key] = function
-                state.llm_tools.append(tool)
+                shared.llm.tool_functions[key] = function
+                state.llm.tools.append(tool)
 
     
     def format_functions(self, functions: list[Callable[..., Any]]) -> dict[str, Tuple[Callable[..., Any], llmir.Tool]]:
@@ -163,7 +163,7 @@ class AddMCPToolsNode[T: e.llm.State = e.llm.State, S: e.llm.Shared = e.llm.Shar
 
             tools: list[llmir.Tool] = self.format_tools(await self.client.list_tools())
 
-            state.llm_tools.extend(tools)
+            state.llm.tools.extend(tools)
 
             async with shared.lock:
                 for tool in tools:
@@ -172,9 +172,9 @@ class AddMCPToolsNode[T: e.llm.State = e.llm.State, S: e.llm.Shared = e.llm.Shar
                         self.client,
                     )
 
-                    if tool.name in shared.llm_tool_functions:
+                    if tool.name in shared.llm.tool_functions:
                         raise Exception(f"Tool with name \"{tool.name}\" already exists")
-                    shared.llm_tool_functions[tool.name] = function
+                    shared.llm.tool_functions[tool.name] = function
 
     
     def format_tools(self, mcp_tools: list[mcp.types.Tool]) -> list[llmir.Tool]:
@@ -199,13 +199,13 @@ class ExtractNewToolCallsNode[T: e.llm.State = e.llm.State, S: e.llm.Shared = e.
         
         async with shared.lock:
 
-            for message in state.llm_new_messages:
+            for message in state.llm.new_messages:
 
                 for chunk in message.chunks:
 
                     if isinstance(chunk, AIChunkToolCall):
 
-                        shared.llm_new_tool_calls.append(chunk)
+                        shared.llm.new_tool_calls.append(chunk)
                         
 
 
@@ -216,10 +216,10 @@ class GetNextToolCallResultNode[T: e.llm.State = e.llm.State, S: e.llm.Shared = 
         
         async with shared.lock:
 
-            if not shared.llm_new_tool_calls:
+            if not shared.llm.new_tool_calls:
                 raise Exception("No new tool calls available to process")
             
-            chunk = shared.llm_new_tool_calls.pop(0)
+            chunk = shared.llm.new_tool_calls.pop(0)
             
         try:
 
@@ -228,7 +228,7 @@ class GetNextToolCallResultNode[T: e.llm.State = e.llm.State, S: e.llm.Shared = 
             result = await self.run_function(state, shared, chunk)
 
             async with shared.lock:
-                shared.llm_new_tool_call_results.append(
+                shared.llm.new_tool_call_results.append(
                     (
                         chunk, 
                         result
@@ -247,7 +247,7 @@ class GetNextToolCallResultNode[T: e.llm.State = e.llm.State, S: e.llm.Shared = 
 
     async def run_function(self, state: T, shared: S, chunk: AIChunkToolCall) -> Any:
     
-        func = shared.llm_tool_functions[chunk.name]
+        func = shared.llm.tool_functions[chunk.name]
         sig = inspect.signature(func)
 
         bound = sig.bind_partial(**chunk.arguments)
@@ -287,16 +287,16 @@ class IntegrateToolResultsNode[T: e.llm.State = e.llm.State, S: e.llm.Shared = e
 
         async with shared.lock:
 
-            for chunk, result in shared.llm_new_tool_call_results:
+            for chunk, result in shared.llm.new_tool_call_results:
 
                 try:
-                    state.llm_new_messages.append(self.format_result(chunk, result))
+                    state.llm.new_messages.append(self.format_result(chunk, result))
 
                 except json.JSONDecodeError as e:
                     e.add_note(f"Unable to JSON encode result for function {chunk.name} with arguments {chunk.arguments}")
                     raise e
             
-            shared.llm_new_tool_call_results = []
+            shared.llm.new_tool_call_results = []
 
 
     def format_result(self, chunk: AIChunkToolCall, result: Any) -> AIMessageToolResponse:
@@ -326,7 +326,7 @@ class IntegrateMCPToolResultsNode[T: e.llm.State = e.llm.State, S: e.llm.Shared 
 
             rprint(shared)
 
-            for chunk, result in shared.llm_new_tool_call_results:
+            for chunk, result in shared.llm.new_tool_call_results:
 
                 rprint(chunk)
 
@@ -335,13 +335,13 @@ class IntegrateMCPToolResultsNode[T: e.llm.State = e.llm.State, S: e.llm.Shared 
                         continue
 
                 try:
-                    state.llm_new_messages.append(self.format_result(chunk, result))
+                    state.llm.new_messages.append(self.format_result(chunk, result))
 
                 except json.JSONDecodeError as e:
                     e.add_note(f"Unable to JSON encode result for function {chunk.name} with arguments {chunk.arguments}")
                     raise e
             
-            shared.llm_new_tool_call_results = remaining
+            shared.llm.new_tool_call_results = remaining
 
 
     def format_result(self, chunk: AIChunkToolCall, result: fastmcp.client.client.CallToolResult) -> AIMessageToolResponse:

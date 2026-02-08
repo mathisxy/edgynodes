@@ -7,7 +7,11 @@ import mimetypes
 import io
 import time
 
-from .states import State, Shared
+from ..states import State, Shared
+
+
+from rich import print
+
 
 class BuildChatNode(Node[State, Shared]):
 
@@ -22,11 +26,14 @@ class BuildChatNode(Node[State, Shared]):
 
     async def run(self, state: State, shared: Shared) -> None:
 
+        print("VOR BUILD CHAT")
+        print(state)
+
         chat: list[AIMessage] = []
 
         async with shared.lock:
-            channel = shared.discord_text_channel
-            bot = shared.discord_bot
+            channel = shared.discord.text_channel
+            bot = shared.discord.bot
 
         async for msg in channel.history(limit=20, oldest_first=False):
 
@@ -60,7 +67,10 @@ class BuildChatNode(Node[State, Shared]):
 
         chat.reverse()
 
-        state.llm_messages.extend(chat)
+        state.llm.messages.extend(chat)
+
+        print("NACH BUILD CHAT")
+        print(state)
 
 
     def format_embed(self, embed: discord.Embed) -> list[AIChunks]:
@@ -94,9 +104,9 @@ class RespondNode(Node[State, Shared]):
     async def run(self, state: State, shared: Shared) -> None:
 
         async with shared.lock:
-            channel = shared.discord_text_channel
+            channel = shared.discord.text_channel
         
-        for message in state.llm_new_messages:                
+        for message in state.llm.new_messages:                
             
             for chunk in message.chunks:
 
@@ -107,13 +117,13 @@ class RespondNode(Node[State, Shared]):
 
         async with shared.lock:
 
-            stream = shared.llm_stream
+            stream = shared.llm.stream
 
         
         if stream:
             streamed_chunks = await self.stream_response(stream, channel)
 
-            state.llm_new_messages.append(
+            state.llm.new_messages.append(
                 AIMessage(
                     role=AIRoles.MODEL,
                     chunks=streamed_chunks
@@ -122,7 +132,7 @@ class RespondNode(Node[State, Shared]):
 
             async with shared.lock:
 
-                shared.llm_stream = None
+                shared.llm.stream = None
 
 
     @classmethod

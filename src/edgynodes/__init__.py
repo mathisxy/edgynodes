@@ -1,4 +1,4 @@
-from . import llm, discord_llm, discordvoice_llm, discord, discordvoice
+from . import llm, discord_llm, discordvoice_llm, discord, discordvoice, discordmessage, discord_discordmessage
 
 __all__ = [
     "llm",
@@ -6,4 +6,6 @@ __all__ = [
     "discordvoice_llm",
     "discord",
     "discordvoice",
+    "discordmessage",
+    "discord_discordmessage",
 ]

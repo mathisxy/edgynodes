@@ -7,13 +7,13 @@ import json
 import requests
 import base64
 
-from edgynodes.llm.core.nodes import LLMNode, LLMState, LLMShared # type: ignore
+from edgynodes.llm import LLMNode, State, Shared # type: ignore
 from .streams import OpenAIStream
 
 
 
 
-class LLMNodeOpenAI[T: LLMState = LLMState, S: LLMShared = LLMShared](LLMNode[T, S]):
+class LLMOpenAINode[T: State = State, S: Shared = Shared](LLMNode[T, S]):
 
     client: AsyncOpenAI
     extra_body: dict[str, object] | None
@@ -27,18 +27,18 @@ class LLMNodeOpenAI[T: LLMState = LLMState, S: LLMShared = LLMShared](LLMNode[T,
 
     async def run(self, state: T, shared: S) -> None:
         
-        chat = state.llm_messages
+        chat = state.llm.messages
 
         if not self.enable_streaming:
 
             response: ChatCompletion = await self.client.chat.completions.create(
                 model=self.model,
                 messages=self.format_messages(chat), # type: ignore
-                tools=self.format_tools(state.llm_tools),
+                tools=self.format_tools(state.llm.tools),
                 extra_body=self.extra_body,
             )
 
-            state.llm_new_messages.append(
+            state.llm.new_messages.append(
                 self.format_response(state, response)
             )
             
@@ -50,15 +50,15 @@ class LLMNodeOpenAI[T: LLMState = LLMState, S: LLMShared = LLMShared](LLMNode[T,
             stream: AsyncIterator[ChatCompletionChunk] = await self.client.chat.completions.create( # type: ignore
                 model=self.model,
                 messages=self.format_messages(chat), # type: ignore
-                tools=self.format_tools(state.llm_tools),
+                tools=self.format_tools(state.llm.tools),
                 stream=True
             )
 
             async with shared.lock:
-                if shared.llm_stream is not None:
+                if shared.llm.stream is not None:
                     raise Exception("Stream variable in Shared is occupied")
             
-                shared.llm_stream = OpenAIStream(iterator=stream) # type: ignore
+                shared.llm.stream = OpenAIStream(iterator=stream) # type: ignore
 
 
     def format_response(self, state: T, response: ChatCompletion):

@@ -1,6 +1,6 @@
-from .core.nodes import LLMNodeOpenAI
+from .core.nodes import LLMOpenAINode
 
-class LLMNodeAzure(LLMNodeOpenAI):
+class LLMAzureNode(LLMOpenAINode):
 
     """The Base-URL should be in this format: https://YOUR-RESOURCE-NAME.openai.azure.com/openai/v1/"""
 

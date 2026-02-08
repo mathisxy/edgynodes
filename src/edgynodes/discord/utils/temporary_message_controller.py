@@ -2,7 +2,7 @@ import discord
 from typing import Any
 
 
-class DiscordTemporaryMessageController:
+class TemporaryMessageController:
 
     channel: discord.abc.Messageable
     messages: dict[str, discord.Message]
