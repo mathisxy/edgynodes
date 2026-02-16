@@ -1,5 +1,6 @@
 import edgygraph
 import discord
+from typing import Protocol, runtime_checkable
 
 
 class StateAttribute(edgygraph.StateAttribute):
@@ -9,10 +10,12 @@ class SharedAttribute(edgygraph.SharedAttribute):
     message: discord.Message
 
 
-class State(edgygraph.State):
+@runtime_checkable
+class StateProtocol(edgygraph.StateProtocol, Protocol):
 
     discordmessage: StateAttribute
 
-class Shared(edgygraph.Shared):
+@runtime_checkable
+class SharedProtocol(edgygraph.SharedProtocol, Protocol):
 
     discordmessage: SharedAttribute

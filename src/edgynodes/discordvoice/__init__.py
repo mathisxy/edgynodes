@@ -1,11 +1,11 @@
 from .core.nodes import StartRecordVoiceNode, LeaveVoiceChannelNode, JoinVoiceChannelNode, AwaitRecordVoiceStopNode, AwaitVoiceStopVADNode, AwaitVoiceStartVADNode, StopRecordVoiceNode
 from .nodes.mistral import STTMistralNode
 from .utils.vad_wave_sink import VADWaveSink
-from .states import State, Shared, StateAttribute, SharedAttribute
+from .states import StateProtocol, SharedProtocol, StateAttribute, SharedAttribute
 
 __all__ = [
-    "State",
-    "Shared",
+    "StateProtocol",
+    "SharedProtocol",
     "StateAttribute",
     "SharedAttribute",
 

@@ -1,7 +1,7 @@
 from edgygraph import Node
 from llmir import AIMessages
 from pydantic import BaseModel
-from ..states import State, Shared
+from ..states import StateProtocol, SharedProtocol
 
 
 class Supports(BaseModel):
@@ -12,7 +12,7 @@ class Supports(BaseModel):
     remote_image_urls: bool = True
 
 
-class LLMNode[T: State = State, S: Shared = Shared](Node[T, S]):
+class LLMNode[T: StateProtocol = StateProtocol, S: SharedProtocol = SharedProtocol](Node[T, S]):
 
     model: str
     enable_streaming: bool = False
@@ -27,7 +27,7 @@ class LLMNode[T: State = State, S: Shared = Shared](Node[T, S]):
 
 
 
-class AddMessageNode[T: State = State, S: Shared = Shared](Node[T, S]):
+class AddMessageNode[T: StateProtocol = StateProtocol, S: SharedProtocol = SharedProtocol](Node[T, S]):
 
     message: AIMessages
 
@@ -36,16 +36,16 @@ class AddMessageNode[T: State = State, S: Shared = Shared](Node[T, S]):
 
         self.message = message
 
-    async def run(self, state: T, shared: S) -> None:
+    async def __call__(self, state: T, shared: S) -> None:
     
         state.llm.messages.append(
             self.message
         )
 
 
-class SaveNewMessagesNode[T: State = State, S: Shared = Shared](Node[T, S]):
+class SaveNewMessagesNode[T: StateProtocol = StateProtocol, S: SharedProtocol = SharedProtocol](Node[T, S]):
 
-    async def run(self, state: T, shared: S) -> None:
+    async def __call__(self, state: T, shared: S) -> None:
 
         print("Saving new messages to messages")
         

@@ -1,17 +1,20 @@
-import edgygraph as e
+import edgygraph
+from typing import Protocol, runtime_checkable
 
-from .utils.temporary_message_controller import TemporaryMessageController
+from .utils.message_controller import TemporaryMessageController
 
 
-class StateAttribute(e.StateAttribute):
+class StateAttribute(edgygraph.StateAttribute):
     pass
 
-class SharedAttribute(e.SharedAttribute):
+class SharedAttribute(edgygraph.SharedAttribute):
     controller: TemporaryMessageController
 
 
-class State(e.State):
+@runtime_checkable
+class StateProtocol(edgygraph.StateProtocol, Protocol):
     discordtmp: StateAttribute
 
-class Shared(e.Shared):
+@runtime_checkable
+class SharedProtocol(edgygraph.SharedProtocol, Protocol):
     discordtmp: SharedAttribute

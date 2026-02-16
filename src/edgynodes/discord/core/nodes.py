@@ -1,10 +1,11 @@
-from edgygraph import Node
 from discord.abc import Messageable
+from edgygraph import Node
 
-from ..states import State, Shared
+from ..states import StateProtocol, SharedProtocol
 
 
-class StartTypingNode(Node[State, Shared]):
+
+class StartTypingNode(Node[StateProtocol, SharedProtocol]):
 
     _channel: Messageable | None
 
@@ -13,7 +14,7 @@ class StartTypingNode(Node[State, Shared]):
         self._channel = channel
 
 
-    async def run(self, state: State, shared: Shared) -> None:
+    async def __call__(self, state: StateProtocol, shared: SharedProtocol) -> None:
         
         async with shared.lock:
 
@@ -21,7 +22,9 @@ class StartTypingNode(Node[State, Shared]):
 
             await shared.discord.typing.start(channel)
 
-class StopTypingNode(Node[State, Shared]):
+
+
+class StopTypingNode(Node[StateProtocol, SharedProtocol]):
 
     _channel: Messageable | None
 
@@ -29,7 +32,7 @@ class StopTypingNode(Node[State, Shared]):
 
         self._channel = channel
 
-    async def run(self, state: State, shared: Shared) -> None:
+    async def __call__(self, state: StateProtocol, shared: SharedProtocol) -> None:
         
         async with shared.lock:
 

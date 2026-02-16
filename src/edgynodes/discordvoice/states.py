@@ -2,10 +2,11 @@ import edgygraph
 import discord
 import asyncio
 from pydantic import Field
+from typing import Protocol
 
 
 class StateAttribute(edgygraph.StateAttribute):
-    transcriptions: dict[str, str] = Field(default_factory=dict[str, str])
+    transcriptions: dict[int, str] = Field(default_factory=dict[int, str])
 
 
 class SharedAttribute(edgygraph.SharedAttribute):
@@ -13,16 +14,16 @@ class SharedAttribute(edgygraph.SharedAttribute):
     channel: discord.VoiceChannel
 
     sink: discord.sinks.Sink | None = None
-    client: discord.voice_client.VoiceProtocol | None = None
+    client: discord.voice_client.VoiceClient | None = None
     text_channel: discord.abc.Messageable | None = None
 
     recording_finished: asyncio.Event = Field(default_factory=asyncio.Event)
 
 
-class State(edgygraph.State):
+class StateProtocol(edgygraph.StateProtocol, Protocol):
 
     discordvoice: StateAttribute
 
-class Shared(edgygraph.Shared):
+class SharedProtocol(edgygraph.SharedProtocol, Protocol):
 
     discordvoice: SharedAttribute

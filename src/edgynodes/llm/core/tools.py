@@ -1,7 +1,7 @@
 from llmir import AIRoles, AIChunkText, AIChunkFile, AIChunkToolCall, AIMessageToolResponse, AIChunks
 import llmir
-from edgygraph import Node, State, Shared
-from typing import Any, Callable, Type, Tuple, cast, overload
+from edgygraph import Node, StateProtocol as BaseStateProtocol, SharedProtocol as BaseSharedProtocol
+from typing import Any, Callable, Tuple, cast, overload, get_origin
 from pydantic import Field, create_model, BaseModel
 from docstring_parser import parse
 from rich import print as rprint
@@ -14,6 +14,8 @@ import base64
 import mimetypes
 
 import edgynodes as e # type: ignore
+
+from ..states import StateProtocol, SharedProtocol
 
 class MCPToolFunction:
 
@@ -55,20 +57,26 @@ class MCPToolFunction:
             )
 
 
-class ToolContext:
 
-    CONTEXT_PARAMS: set[str] = {"state", "shared"}
+class ToolContext[T: BaseStateProtocol = BaseStateProtocol, S: BaseSharedProtocol = BaseSharedProtocol]:
+
+
+    state: T
+    shared: S
+
+    def __init__(self, state: T, shared: S) -> None:
+        self.state = state
+        self.shared = shared
+
 
     @classmethod
-    def is_context_param(cls, param: inspect.Parameter) -> bool:
-        ann = param.annotation
-        return (
-            isinstance(ann, type)
-            and issubclass(ann, (State, Shared))
-        )
+    def is_context_param(cls, parameter: inspect.Parameter) -> bool:
+        annotation = parameter.annotation
+        return annotation is cls or get_origin(annotation) is cls
+    
+    
 
-
-class AddToolsNode[T: e.llm.State = e.llm.State, S: e.llm.Shared = e.llm.Shared](Node[T, S]): #TODO make it make sense
+class AddToolsNode[T: StateProtocol = StateProtocol, S: SharedProtocol = SharedProtocol](Node[T, S]):
 
     tools: dict[str, Tuple[Callable[..., Any], llmir.Tool]]
 
@@ -77,7 +85,7 @@ class AddToolsNode[T: e.llm.State = e.llm.State, S: e.llm.Shared = e.llm.Shared]
 
         self.tools = self.format_functions(functions)
 
-    async def run(self, state: T, shared: S) -> None:
+    async def __call__(self, state: T, shared: S) -> None:
         
         async with shared.lock:
             for key, value in self.tools.items():
@@ -112,6 +120,8 @@ class AddToolsNode[T: e.llm.State = e.llm.State, S: e.llm.Shared = e.llm.Shared]
                 if param.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD) or ToolContext.is_context_param(param):
                     continue
 
+                print(param)
+
                 annotation = param.annotation if param.annotation is not inspect.Parameter.empty else Any
                 default = ... if param.default is inspect.Parameter.empty else param.default
 
@@ -123,7 +133,7 @@ class AddToolsNode[T: e.llm.State = e.llm.State, S: e.llm.Shared = e.llm.Shared]
                     )
                 )
 
-            dynamic_model: Type[BaseModel] = create_model(function.__name__, **cast(dict[str, Any], fields))
+            dynamic_model: type[BaseModel] = create_model(function.__name__, **cast(dict[str, Any], fields))
 
             tools[function.__name__] = (
                 function,
@@ -135,10 +145,11 @@ class AddToolsNode[T: e.llm.State = e.llm.State, S: e.llm.Shared = e.llm.Shared]
             )
         
         return tools
+
     
 
 
-class AddMCPToolsNode[T: e.llm.State = e.llm.State, S: e.llm.Shared = e.llm.Shared](Node[T, S]):
+class AddMCPToolsNode[T: StateProtocol = StateProtocol, S: SharedProtocol = SharedProtocol](Node[T, S]):
 
     client: fastmcp.Client[Any]
 
@@ -157,7 +168,7 @@ class AddMCPToolsNode[T: e.llm.State = e.llm.State, S: e.llm.Shared = e.llm.Shar
             self.client = fastmcp.Client(target)
 
 
-    async def run(self, state: T, shared: S) -> None:
+    async def __call__(self, state: T, shared: S) -> None:
         
         async with self.client:
 
@@ -193,9 +204,9 @@ class AddMCPToolsNode[T: e.llm.State = e.llm.State, S: e.llm.Shared = e.llm.Shar
         return tools
 
 
-class ExtractNewToolCallsNode[T: e.llm.State = e.llm.State, S: e.llm.Shared = e.llm.Shared](Node[T, S]):
+class ExtractNewToolCallsNode[T: StateProtocol = StateProtocol, S: SharedProtocol = SharedProtocol](Node[T, S]):
 
-    async def run(self, state: T, shared: S) -> None:
+    async def __call__(self, state: T, shared: S) -> None:
         
         async with shared.lock:
 
@@ -209,10 +220,10 @@ class ExtractNewToolCallsNode[T: e.llm.State = e.llm.State, S: e.llm.Shared = e.
                         
 
 
-class GetNextToolCallResultNode[T: e.llm.State = e.llm.State, S: e.llm.Shared = e.llm.Shared](Node[T, S]):
+class GetNextToolCallResultNode[T: StateProtocol = StateProtocol, S: SharedProtocol = SharedProtocol](Node[T, S]):
 
 
-    async def run(self, state: T, shared: S) -> None:
+    async def __call__(self, state: T, shared: S) -> None:
         
         async with shared.lock:
 
@@ -255,20 +266,13 @@ class GetNextToolCallResultNode[T: e.llm.State = e.llm.State, S: e.llm.Shared = 
         print(bound)
 
         for name, param in sig.parameters.items():
-            ann = param.annotation
 
-            if name in bound.arguments:
+            if name in bound.arguments: # only use unbound parameters
                 continue
 
-            if isinstance(ann, type) and issubclass(ann, State):
-                if not issubclass(type(state), ann):
-                    raise ValueError(f"Function {chunk.name} requires state of type {ann}, but {type(state)} is not a subtype") # Type safety
-                bound.arguments[name] = state
-
-            elif isinstance(ann, type) and issubclass(ann, Shared):
-                if not issubclass(type(shared), ann):
-                    raise ValueError(f"Function {chunk.name} requires shared state of type {ann}, but {type(shared)} is not a subtype") # Type safety
-                bound.arguments[name] = shared
+            if ToolContext.is_context_param(param):
+                context = ToolContext(state, shared)
+                bound.arguments[name] = context
 
         result = func(*bound.args, **bound.kwargs)
 
@@ -281,9 +285,9 @@ class GetNextToolCallResultNode[T: e.llm.State = e.llm.State, S: e.llm.Shared = 
 
 
 
-class IntegrateToolResultsNode[T: e.llm.State = e.llm.State, S: e.llm.Shared = e.llm.Shared](Node[T, S]):
+class IntegrateToolResultsNode[T: StateProtocol = StateProtocol, S: SharedProtocol = SharedProtocol](Node[T, S]):
 
-    async def run(self, state: T, shared: S) -> None:
+    async def __call__(self, state: T, shared: S) -> None:
 
         async with shared.lock:
 
@@ -315,9 +319,9 @@ class IntegrateToolResultsNode[T: e.llm.State = e.llm.State, S: e.llm.Shared = e
         )
     
 
-class IntegrateMCPToolResultsNode[T: e.llm.State = e.llm.State, S: e.llm.Shared = e.llm.Shared](Node[T, S]):
+class IntegrateMCPToolResultsNode[T: StateProtocol = StateProtocol, S: SharedProtocol = SharedProtocol](Node[T, S]):
 
-    async def run(self, state: T, shared: S) -> None:
+    async def __call__(self, state: T, shared: S) -> None:
 
         remaining: list[Tuple[AIChunkToolCall, Any]] = []
 

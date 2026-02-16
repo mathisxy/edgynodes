@@ -1,15 +1,14 @@
 from edgygraph import Node
 from llmir import AIMessage, AIRoles, AIChunkText
-from rich import print
 
-from ..states import State, Shared
+from ..states import StateProtocol, SharedProtocol
 
-class TranscriptionsToAINode(Node[State, Shared]):
+class TranscriptionsToAINode(Node[StateProtocol, SharedProtocol]):
 
 
-    async def run(self, state: State, shared: Shared) -> None:
+    async def __call__(self, state: StateProtocol, shared: SharedProtocol) -> None:
         
-        for user_id, transcription in state.discordvoice.transcriptions.items():
+        for user_id, transcription in state.discordvoice.transcriptions.items(): # type: ignore
             
             if transcription.strip() == "":
                 continue
@@ -22,5 +21,3 @@ class TranscriptionsToAINode(Node[State, Shared]):
             )
 
         state.discordvoice.transcriptions.clear()
-
-        print(state)

@@ -1,17 +1,17 @@
-import edgygraph
+import edgygraph as e
 from llmir import AIMessages, Tool, AIChunkToolCall
 from pydantic import Field
-from typing import Callable, Any, Tuple
+from typing import Callable, Any, Tuple, Protocol
 from .core.streams import LLMStream
 
-class StateAttribute(edgygraph.StateAttribute):
+class StateAttribute(e.StateAttribute):
     messages: list[AIMessages] = Field(default_factory=list[AIMessages])
     new_messages: list[AIMessages] = Field(default_factory=list[AIMessages])
 
     tools: list[Tool] = Field(default_factory=list[Tool])
 
 
-class SharedAttribute(edgygraph.SharedAttribute):
+class SharedAttribute(e.SharedAttribute):
     stream: LLMStream | None = None
 
     tool_functions: dict[str, Callable[..., Any]] = Field(default_factory=dict[str, Callable[..., Any]]) # name -> function
@@ -20,10 +20,10 @@ class SharedAttribute(edgygraph.SharedAttribute):
     new_tool_call_results: list[Tuple[AIChunkToolCall, Any]] = Field(default_factory=list[Tuple[AIChunkToolCall, Any]])
 
 
-class State(edgygraph.State):
+class StateProtocol(e.StateProtocol, Protocol):
 
     llm: StateAttribute
 
-class Shared(edgygraph.Shared):
+class SharedProtocol(e.SharedProtocol, Protocol):
 
     llm: SharedAttribute

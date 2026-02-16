@@ -1,17 +1,13 @@
 from .core.nodes import StartTypingNode, StopTypingNode
-from .states import State, Shared, StateAttribute, SharedAttribute, DiscordTypingManager
-from .utils.temporary_message_controller import TemporaryMessageController, KeyNotFound
+from .states import StateProtocol, SharedProtocol, StateAttribute, SharedAttribute, DiscordTypingManager
 
 __all__ = [
-    "State",
-    "Shared",
+    "StateProtocol",
+    "SharedProtocol",
     "StateAttribute",
     "SharedAttribute",
 
     "DiscordTypingManager",
     "StartTypingNode",
     "StopTypingNode",
-
-    "TemporaryMessageController",
-    "KeyNotFound",
 ]

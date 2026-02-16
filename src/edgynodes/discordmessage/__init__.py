@@ -1,8 +1,8 @@
-from .states import State, Shared, StateAttribute, SharedAttribute
+from .states import StateProtocol, SharedProtocol, StateAttribute, SharedAttribute
 
 __all__ = [
-    "State",
-    "Shared",
+    "StateProtocol",
+    "SharedProtocol",
     "StateAttribute",
     "SharedAttribute",
 ]

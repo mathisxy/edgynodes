@@ -4,32 +4,37 @@ import discord
 import time
 import asyncio
 
-from ..states import State, Shared
+from ..states import StateProtocol, SharedProtocol
 from ..utils.vad_wave_sink import VADWaveSink
 
+from rich import print
 
 
-class JoinVoiceChannelNode(Node[State, Shared]):
+class JoinVoiceChannelNode(Node[StateProtocol, SharedProtocol]):
 
 
-    async def run(self, state: State, shared: Shared) -> None:
+    async def __call__(self, state: StateProtocol, shared: SharedProtocol) -> None:
 
         async with shared.lock:
             voice_channel = shared.discordvoice.channel
             voice_client = shared.discordvoice.client
 
         if voice_client and voice_client.is_connected():
-            return  # Already connected
+            if voice_client.channel != voice_channel:
+                # Im falschen Channel -> umziehen
+                await voice_client.move_to(voice_channel)
         
-        await voice_channel.connect()
+        else:
+            # Nicht verbunden -> neu connecten
+            new_voice_client = await voice_channel.connect()
+            
+            async with shared.lock:
+                shared.discordvoice.client = new_voice_client
+            
 
-        async with shared.lock:
-            shared.discordvoice.client = voice_client
+class LeaveVoiceChannelNode(Node[StateProtocol, SharedProtocol]):
 
-
-class LeaveVoiceChannelNode(Node[State, Shared]):
-
-    async def run(self, state: State, shared: Shared) -> None:
+    async def __call__(self, state: StateProtocol, shared: SharedProtocol) -> None:
         async with shared.lock:
             voice_client = shared.discordvoice.client
 
@@ -41,7 +46,7 @@ class LeaveVoiceChannelNode(Node[State, Shared]):
 
 
 
-class StartRecordVoiceNode(Node[State, Shared]):
+class StartRecordVoiceNode(Node[StateProtocol, SharedProtocol]):
 
     sink_factory: Callable[..., discord.sinks.Sink]
     delay: float
@@ -51,7 +56,7 @@ class StartRecordVoiceNode(Node[State, Shared]):
         self.sink_factory = sink_factory or (lambda: discord.sinks.WaveSink())
         self.delay = delay
 
-    async def run(self, state: State, shared: Shared) -> None:
+    async def __call__(self, state: StateProtocol, shared: SharedProtocol) -> None:
         
         sink = self.sink_factory()
 
@@ -78,25 +83,28 @@ class StartRecordVoiceNode(Node[State, Shared]):
             on_done,
         )
 
-class StopRecordVoiceNode(Node[State, Shared]):
+class StopRecordVoiceNode(Node[StateProtocol, SharedProtocol]):
 
-    async def run(self, state: State, shared: Shared) -> None:
+    async def __call__(self, state: StateProtocol, shared: SharedProtocol) -> None:
 
         async with shared.lock:
             voice_client = shared.discordvoice.client
+            finished_flag = shared.discordvoice.recording_finished
 
         if not voice_client:
             raise Exception("Need to be in a voice channel to stop recording.")
         
         voice_client.stop_recording()
 
+        await finished_flag.wait()
+
     
 
         
 
-class AwaitRecordVoiceStopNode(Node[State, Shared]):
+class AwaitRecordVoiceStopNode(Node[StateProtocol, SharedProtocol]):
 
-    async def run(self, state: State, shared: Shared) -> None:
+    async def __call__(self, state: StateProtocol, shared: SharedProtocol) -> None:
         
         async with shared.lock:
             finished_flag = shared.discordvoice.recording_finished
@@ -106,9 +114,9 @@ class AwaitRecordVoiceStopNode(Node[State, Shared]):
         print("Recording finished!")
 
 
-class AwaitVoiceStartVADNode(Node[State, Shared]):
+class AwaitVoiceStartVADNode(Node[StateProtocol, SharedProtocol]):
 
-    async def run(self, state: State, shared: Shared) -> None:
+    async def __call__(self, state: StateProtocol, shared: SharedProtocol) -> None:
 
         async with shared.lock:
             voice_client = shared.discordvoice.client
@@ -146,7 +154,7 @@ class AwaitVoiceStartVADNode(Node[State, Shared]):
 
 
 
-class AwaitVoiceStopVADNode(Node[State, Shared]):
+class AwaitVoiceStopVADNode(Node[StateProtocol, SharedProtocol]):
 
     silence_timeout: float 
 
@@ -155,7 +163,7 @@ class AwaitVoiceStopVADNode(Node[State, Shared]):
         self.silence_timeout = silence_timeout
         
 
-    async def run(self, state: State, shared: Shared) -> None:
+    async def __call__(self, state: StateProtocol, shared: SharedProtocol) -> None:
 
         async with shared.lock:
             voice_client = shared.discordvoice.client
@@ -170,7 +178,11 @@ class AwaitVoiceStopVADNode(Node[State, Shared]):
         if not isinstance(sink, VADWaveSink):
             raise Exception("Sink is not a edgynodes.discordvoice VADWaveSink.")
         
+        start = time.monotonic()
+
         await self.monitor_silence(voice_client, sink)
+
+        print(f"[yellow]Waited for silence for {time.monotonic() - start:.2f}s.[/yellow]")
         
 
     

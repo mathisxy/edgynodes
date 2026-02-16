@@ -1,17 +1,16 @@
-import edgygraph
-
-from ..discordvoice import StateAttribute as DiscordVoiceStateAttribute, SharedAttribute as DiscordVoiceSharedAttribute
-from ..llm import StateAttribute as LLMStateAttribute, SharedAttribute as LLMSharedAttribute
+from typing import Protocol, runtime_checkable
 
 
-class State(edgygraph.State):
+from ..discordvoice import StateProtocol as DiscordVoiceStateProtocol, SharedProtocol as DiscordVoiceSharedProtocol
+from ..llm import StateProtocol as LLMStateProtocol, SharedProtocol as LLMSharedProtocol
 
-    discordvoice: DiscordVoiceStateAttribute
-    llm: LLMStateAttribute
+@runtime_checkable
+class StateProtocol(DiscordVoiceStateProtocol, LLMStateProtocol, Protocol):
+    pass
     
-class Shared(edgygraph.Shared):
-    
-    discordvoice: DiscordVoiceSharedAttribute
-    llm: LLMSharedAttribute
+
+@runtime_checkable
+class SharedProtocol(DiscordVoiceSharedProtocol, LLMSharedProtocol, Protocol):
+    pass
 
 

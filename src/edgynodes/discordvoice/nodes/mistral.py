@@ -1,13 +1,14 @@
 from edgygraph import Node
-from llmir import AIChunkText, AIMessage, AIRoles
 from mistralai import Mistral
 import discord
-import io
 
-from ..states import State, Shared
+from ..states import StateProtocol, SharedProtocol
 
 
-class STTMistralNode(Node[State, Shared]):
+from rich import print
+
+
+class STTMistralNode(Node[StateProtocol, SharedProtocol]):
 
 
     model: str
@@ -22,10 +23,7 @@ class STTMistralNode(Node[State, Shared]):
         self.language = language
 
 
-    async def run(self, state: State, shared: Shared) -> None:
-
-        print("BEFORE SPEECH TO TEXT")
-        print(state)
+    async def __call__(self, state: StateProtocol, shared: SharedProtocol) -> None:
 
         async with shared.lock:
             sink = shared.discordvoice.sink
@@ -60,11 +58,18 @@ class STTMistralNode(Node[State, Shared]):
             state.discordvoice.transcriptions[user_id] = transcription_text
 
             # Optional: Datei für Discord senden (falls gewünscht)
-            wav_file = discord.File(
-                fp=io.BytesIO(wav_bytes),
-                filename=f"{user_id}.{sink.encoding}"
-            )
-            await text_channel.send(
-                content=f"🎤 Audio von <@{user_id}>\n**Transkription:** {transcription_text}",
-                file=wav_file
-            )
+            # wav_file = discord.File(
+            #     fp=io.BytesIO(wav_bytes),
+            #     filename=f"{user_id}.{sink.encoding}"
+            # )
+            # await text_channel.send(
+            #     content=f"🎤 Audio von <@{user_id}>\n**Transkription:** {transcription_text}",
+            #     file=wav_file
+            # )
+
+
+    @classmethod
+    def get_audio_duration(cls, wav_bytes: bytes, sample_rate: int = 48000, channels: int = 2, bytes_per_sample: int = 2) -> float:
+        """Berechnet die Dauer einer WAV-Datei in Sekunden"""
+        audio_data_size = len(wav_bytes) - 44  # 44 Bytes Header
+        return audio_data_size / (sample_rate * channels * bytes_per_sample)

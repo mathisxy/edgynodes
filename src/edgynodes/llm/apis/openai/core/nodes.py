@@ -7,13 +7,12 @@ import json
 import requests
 import base64
 
-from edgynodes.llm import LLMNode, State, Shared # type: ignore
+from edgynodes.llm import LLMNode, StateProtocol, SharedProtocol # type: ignore
 from .streams import OpenAIStream
 
 
 
-
-class LLMOpenAINode[T: State = State, S: Shared = Shared](LLMNode[T, S]):
+class LLMOpenAINode[T: StateProtocol = StateProtocol, S: SharedProtocol = SharedProtocol](LLMNode[T, S]):
 
     client: AsyncOpenAI
     extra_body: dict[str, object] | None
@@ -25,7 +24,7 @@ class LLMOpenAINode[T: State = State, S: Shared = Shared](LLMNode[T, S]):
         self.extra_body = extra_body
 
 
-    async def run(self, state: T, shared: S) -> None:
+    async def __call__(self, state: T, shared: S) -> None:
         
         chat = state.llm.messages
 

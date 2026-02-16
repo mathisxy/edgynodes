@@ -1,8 +1,8 @@
 from .core.nodes import LLMNode, Supports, AddMessageNode, SaveNewMessagesNode
-from .states import State, Shared, StateAttribute, SharedAttribute
+from .states import StateProtocol, SharedProtocol, StateAttribute, SharedAttribute
 from .core.streams import LLMStream
 
-from .core.tools import AddToolsNode, AddMCPToolsNode, ExtractNewToolCallsNode, GetNextToolCallResultNode, IntegrateToolResultsNode, IntegrateMCPToolResultsNode, MCPToolFunction
+from .core.tools import AddToolsNode, AddMCPToolsNode, ExtractNewToolCallsNode, GetNextToolCallResultNode, IntegrateToolResultsNode, IntegrateMCPToolResultsNode, MCPToolFunction, ToolContext
 
 from .apis.openai import LLMOpenAINode, OpenAIStream
 
@@ -13,8 +13,8 @@ from .apis.openai import LLMOllamaNode
 from .apis.openai import LLMClaudeNode
 
 __all__ = [
-    "State",
-    "Shared",
+    "StateProtocol",
+    "SharedProtocol",
     "StateAttribute",
     "SharedAttribute",
     "LLMNode",
@@ -38,6 +38,8 @@ __all__ = [
     "GetNextToolCallResultNode",
     "IntegrateToolResultsNode",
     "IntegrateMCPToolResultsNode",
-    "MCPToolFunction"
+    "MCPToolFunction",
+
+    "ToolContext",
 
 ]
