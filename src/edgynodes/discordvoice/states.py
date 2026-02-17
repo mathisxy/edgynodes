@@ -2,7 +2,7 @@ import edgygraph
 import discord
 import asyncio
 from pydantic import Field
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 
 
 class StateAttribute(edgygraph.StateAttribute):
@@ -20,10 +20,12 @@ class SharedAttribute(edgygraph.SharedAttribute):
     recording_finished: asyncio.Event = Field(default_factory=asyncio.Event)
 
 
+@runtime_checkable
 class StateProtocol(edgygraph.StateProtocol, Protocol):
 
     discordvoice: StateAttribute
 
+@runtime_checkable
 class SharedProtocol(edgygraph.SharedProtocol, Protocol):
 
     discordvoice: SharedAttribute

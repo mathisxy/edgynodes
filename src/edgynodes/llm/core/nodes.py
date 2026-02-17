@@ -3,6 +3,8 @@ from llmir import AIMessages
 from pydantic import BaseModel
 from ..states import StateProtocol, SharedProtocol
 
+from rich import print
+
 
 class Supports(BaseModel):
 
@@ -52,3 +54,5 @@ class SaveNewMessagesNode[T: StateProtocol = StateProtocol, S: SharedProtocol = 
         state.llm.messages.extend(state.llm.new_messages)
 
         state.llm.new_messages = []
+
+        print(state)
