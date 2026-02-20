@@ -82,7 +82,7 @@ class PiperTTSNode(Node[StateProtocol, SharedProtocol]):
 
                 if current_text:
                     await self.tts(current_text, voice_client)
-                chunks.append(AIChunkText(text=current_text))
+                    chunks.append(AIChunkText(text=current_text))
             
 
             if chunks:
@@ -106,7 +106,7 @@ class PiperTTSNode(Node[StateProtocol, SharedProtocol]):
 
         audio_buffer = io.BytesIO()
         with wave.open(audio_buffer, 'wb') as wav_file:
-            self.voice.synthesize_wav(text, wav_file)
+            self.voice.synthesize_wav(text, wav_file, syn_config=self.syn_config)
 
         # # TTS generieren - Audio-Chunks sammeln
         # audio_data = b''

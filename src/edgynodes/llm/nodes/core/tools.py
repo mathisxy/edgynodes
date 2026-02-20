@@ -1,11 +1,11 @@
 from llmir import AIRoles, AIChunkText, AIChunkFile, AIChunkToolCall, AIMessageToolResponse, AIChunks
 import llmir
-from edgygraph import Node, StateProtocol as BaseStateProtocol, SharedProtocol as BaseSharedProtocol
-from typing import Any, Callable, Tuple, cast, overload, get_origin
+from edgygraph import Node
+from typing import Any, Callable, Tuple, cast, overload
 from pydantic import Field, create_model, BaseModel
 from docstring_parser import parse
 from rich import print as rprint
-from datetime import datetime, timedelta
+from datetime import datetime
 import json
 import inspect
 import mcp
@@ -13,67 +13,9 @@ import fastmcp
 import base64
 import mimetypes
 
-import edgynodes as e # type: ignore
 
-from ..states import StateProtocol, SharedProtocol
-
-class MCPToolFunction:
-
-    tool: llmir.Tool
-    client: fastmcp.Client[Any]
-    timeout: timedelta | float | int | None
-    progress_handler: fastmcp.client.client.ProgressHandler | None
-    raise_on_error: bool
-    meta: dict[str, Any] | None
-
-    def __init__(self, 
-                 tool: llmir.Tool, 
-                 client: fastmcp.Client[Any], 
-                 timeout: timedelta | float | int | None = None,
-                 progress_handler: fastmcp.client.client.ProgressHandler | None = None,
-                 raise_on_error: bool = True,
-                 meta: dict[str, Any] | None = None,
-        ) -> None:
-        self.tool = tool
-        self.client = client
-        self.timeout = timeout
-        self.progress_handler = progress_handler
-        self.raise_on_error = raise_on_error
-        self.meta = meta
-
-
-
-    async def __call__(self, **kwargs: Any) -> fastmcp.client.client.CallToolResult:
-        
-        async with self.client:
-
-            return await self.client.call_tool(
-                self.tool.name, 
-                kwargs, 
-                timeout=self.timeout, 
-                progress_handler=self.progress_handler, 
-                raise_on_error=self.raise_on_error, 
-                meta=self.meta
-            )
-
-
-
-class ToolContext[T: BaseStateProtocol = BaseStateProtocol, S: BaseSharedProtocol = BaseSharedProtocol]:
-
-
-    state: T
-    shared: S
-
-    def __init__(self, state: T, shared: S) -> None:
-        self.state = state
-        self.shared = shared
-
-
-    @classmethod
-    def is_context_param(cls, parameter: inspect.Parameter) -> bool:
-        annotation = parameter.annotation
-        return annotation is cls or get_origin(annotation) is cls
-    
+from ...states import StateProtocol, SharedProtocol
+from .utils.tools import MCPToolFunction, ToolContext
     
 
 class AddToolsNode[T: StateProtocol = StateProtocol, S: SharedProtocol = SharedProtocol](Node[T, S]):

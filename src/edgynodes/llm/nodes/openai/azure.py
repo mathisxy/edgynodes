@@ -1,4 +1,4 @@
-from .core.nodes import LLMOpenAINode
+from .openai import LLMOpenAINode
 
 class LLMAzureNode(LLMOpenAINode):
 

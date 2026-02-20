@@ -1,6 +1,6 @@
 from .states import StateProtocol, SharedProtocol, StateAttribute, SharedAttribute
-from .nodes.message_controller import ClearTmpDiscordMessagesNode
-from .utils.message_controller import TemporaryMessageController
+from .nodes.core.message_controller import ClearTmpDiscordMessagesNode
+from .nodes.core.utils.message_controller import TemporaryMessageController
 
 
 __all__ = [

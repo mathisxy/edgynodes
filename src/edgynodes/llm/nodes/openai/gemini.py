@@ -1,8 +1,8 @@
-from edgynodes.llm.core.nodes import Supports # type: ignore
-from .core.nodes import LLMOpenAINode
+from ..core.utils.supports import Supports
+from .openai import LLMOpenAINode
+
 
 class LLMGeminiNode(LLMOpenAINode):
-
 
     supports: Supports = Supports(
         remote_image_urls=False

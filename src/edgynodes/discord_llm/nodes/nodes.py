@@ -1,8 +1,8 @@
 from edgygraph import Node, Stream
 from discord.abc import Messageable
 from discord import Message
-from llmir import AIMessage, AIChunks, AIChunkText, AIChunkFile, AIChunkImageURL, AIMessageToolResponse, AIChunkToolCall, AIRoles
-from typing import Literal, Generator
+from llmir import AIMessage, AIMessages, AIChunks, AIChunkText, AIChunkFile, AIChunkImageURL, AIMessageToolResponse, AIChunkToolCall, AIRoles
+from typing import Literal, Generator, Callable
 import discord
 import mimetypes
 import io
@@ -38,7 +38,7 @@ class BuildChatNode(Node[StateProtocol, SharedProtocol]):
             channel = shared.discord.text_channel
             bot = shared.discord.bot
 
-        async for msg in channel.history(limit=20, oldest_first=False):
+        async for msg in channel.history(limit=self.limit, oldest_first=False):
 
             role = AIRoles.MODEL if msg.author == bot.user else AIRoles.USER
 
@@ -98,6 +98,8 @@ class BuildChatNode(Node[StateProtocol, SharedProtocol]):
         
         return chunks
 
+        
+
 
 class RespondNode(Node[StateProtocol, SharedProtocol]):
     """Send all new messages in the state to the Discord channel.
@@ -109,6 +111,7 @@ class RespondNode(Node[StateProtocol, SharedProtocol]):
     Chunks from tool responses are handled according to the `send_tool_responses` parameter.
 
     Attributes:
+        filter: A function that takes the messages and chunks and returns a boolean indicating whether to send this chunk into the Discord channel.
         send_tool_responses: Whether to send tool responses in the Discord channel.
             - `True`: Send all tool responses.
             - `False`: Do not send any tool responses.
@@ -118,12 +121,14 @@ class RespondNode(Node[StateProtocol, SharedProtocol]):
 
     send_tool_responses: Literal[True, False, "only_media"]
     stream_text_edit_interval: float
+    filter: Callable[[AIMessages, AIChunks], bool]
 
 
-    def __init__(self, send_tool_responses: Literal[True, False, "only_media"] = "only_media", stream_text_edit_interval: float = 1.0) -> None:
+    def __init__(self, filter: Callable[[AIMessages, AIChunks], bool] | None = None, send_tool_responses: Literal[True, False, "only_media"] = "only_media", stream_text_edit_interval: float = 1.0) -> None:
         
         self.send_tool_responses = send_tool_responses
         self.stream_text_edit_interval = stream_text_edit_interval
+        self.filter = filter if filter is not None else lambda _, __: True
 
     
     async def __call__(self, state: StateProtocol, shared: SharedProtocol) -> None:
@@ -135,11 +140,19 @@ class RespondNode(Node[StateProtocol, SharedProtocol]):
             
             for chunk in message.chunks:
 
+                if not self.filter(message, chunk):
+                    continue
+
                 if isinstance(message, AIMessageToolResponse):
-                    if not self.send_tool_responses or (self.send_tool_responses == "only_media" and isinstance(chunk, AIChunkText)):
+                    if not self.send_tool_responses:
                         continue
 
+                    if self.send_tool_responses == "only_media" and isinstance(chunk, AIChunkText):
+                        continue
+
+
                 await self.send_chunk(chunk, channel)
+
 
         async with shared.lock:
 
@@ -147,7 +160,13 @@ class RespondNode(Node[StateProtocol, SharedProtocol]):
 
         
         if stream:
-            streamed_chunks = await self.stream_response(stream, channel, self.stream_text_edit_interval)
+
+            def chunk_filter(chunk: AIChunks) -> bool:
+
+                return self.filter(AIMessage(role=AIRoles.MODEL, chunks=[chunk]), chunk)
+
+
+            streamed_chunks = await self.stream_response(stream, channel, chunk_filter, self.stream_text_edit_interval)
 
             state.llm.new_messages.append(
                 AIMessage(
@@ -163,7 +182,7 @@ class RespondNode(Node[StateProtocol, SharedProtocol]):
 
 
     @classmethod
-    async def stream_response(cls, stream: Stream[AIChunks], channel: Messageable, edit_interval: float) -> list[AIChunks]:
+    async def stream_response(cls, stream: Stream[AIChunks], channel: Messageable, filter: Callable[[AIChunks], bool], edit_interval: float) -> list[AIChunks]:
         """Stream the response from the LLM to the Discord channel.
         
         This method handles all AI chunk types.
@@ -190,18 +209,20 @@ class RespondNode(Node[StateProtocol, SharedProtocol]):
 
             async for chunk in stream:
 
-                if isinstance(chunk, AIChunkText):
+                if filter(chunk):
 
-                    text += chunk.text
-                    now = time.monotonic()
+                    if isinstance(chunk, AIChunkText):
 
-                    if now - last_edit >= edit_interval:
-                        text_messages = await cls.send_text_incremental(text_messages, text, channel)
-                        last_edit = now
+                        text += chunk.text
+                        now = time.monotonic()
 
-                else:
-                    await cls.send_chunk(chunk, channel)
-                    chunks.append(chunk)
+                        if now - last_edit >= edit_interval:
+                            text_messages = await cls.send_text_incremental(text_messages, text, channel)
+                            last_edit = now
+
+                    else:
+                        await cls.send_chunk(chunk, channel)
+                        chunks.append(chunk)
 
         if text.strip():
             await cls.send_text_incremental(text_messages, text, channel)

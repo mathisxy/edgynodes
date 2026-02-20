@@ -7,8 +7,9 @@ import json
 import requests
 import base64
 
-from edgynodes.llm import LLMNode, StateProtocol, SharedProtocol # type: ignore
-from .streams import OpenAIStream
+from ...states import StateProtocol, SharedProtocol
+from ..core.llm import LLMNode
+from .utils.streams import OpenAIStream
 
 
 

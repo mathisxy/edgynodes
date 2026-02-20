@@ -1,5 +1,5 @@
-from .core.nodes import LLMOpenAINode
-from .core.streams import OpenAIStream
+from .openai import LLMOpenAINode
+from .utils.streams import OpenAIStream
 from .azure import LLMAzureNode
 from .gemini import LLMGeminiNode
 from .mistral import LLMMistralNode

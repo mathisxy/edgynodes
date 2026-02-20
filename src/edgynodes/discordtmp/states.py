@@ -1,7 +1,7 @@
 import edgygraph
 from typing import Protocol, runtime_checkable
 
-from .utils.message_controller import TemporaryMessageController
+from .nodes.core.utils.message_controller import TemporaryMessageController
 
 
 class StateAttribute(edgygraph.StateAttribute):

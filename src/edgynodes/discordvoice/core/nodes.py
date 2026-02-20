@@ -1,5 +1,5 @@
 from edgygraph import Node
-from typing import Callable
+from typing import Callable, Awaitable
 import discord
 import time
 import asyncio
@@ -116,6 +116,13 @@ class AwaitRecordVoiceStopNode(Node[StateProtocol, SharedProtocol]):
 
 class AwaitVoiceStartVADNode(Node[StateProtocol, SharedProtocol]):
 
+    on_finished: Callable[[StateProtocol, SharedProtocol], Awaitable[None]] | None
+
+    def __init__(self, on_finished: Callable[[StateProtocol, SharedProtocol], Awaitable[None]] | None = None) -> None:
+        
+        self.on_finished = on_finished
+        
+
     async def __call__(self, state: StateProtocol, shared: SharedProtocol) -> None:
 
         async with shared.lock:
@@ -138,6 +145,9 @@ class AwaitVoiceStartVADNode(Node[StateProtocol, SharedProtocol]):
 
         print(f"Waited for voice for {time.monotonic() - start} seconds")
 
+        if self.on_finished:
+            await self.on_finished(state, shared)
+
     
     async def monitor_voice(self, recorded_voice: asyncio.Event, recording_finished: asyncio.Event) -> None:
 
@@ -156,11 +166,13 @@ class AwaitVoiceStartVADNode(Node[StateProtocol, SharedProtocol]):
 
 class AwaitVoiceStopVADNode(Node[StateProtocol, SharedProtocol]):
 
-    silence_timeout: float 
+    silence_timeout: float
+    on_finished: Callable[[StateProtocol, SharedProtocol], Awaitable[None]] | None = None
 
-    def __init__(self, silence_timeout: float = 1) -> None:
+    def __init__(self, silence_timeout: float = 1, on_finished: Callable[[StateProtocol, SharedProtocol], Awaitable[None]] | None = None) -> None:
 
         self.silence_timeout = silence_timeout
+        self.on_finished = on_finished
         
 
     async def __call__(self, state: StateProtocol, shared: SharedProtocol) -> None:
@@ -184,6 +196,8 @@ class AwaitVoiceStopVADNode(Node[StateProtocol, SharedProtocol]):
 
         print(f"[yellow]Waited for silence for {time.monotonic() - start:.2f}s.[/yellow]")
         
+        if self.on_finished:
+            await self.on_finished(state, shared)
 
     
     async def monitor_silence(self, voice_client: discord.VoiceClient, sink: VADWaveSink):

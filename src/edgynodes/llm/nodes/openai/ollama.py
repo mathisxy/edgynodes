@@ -1,5 +1,6 @@
-from .core.nodes import LLMOpenAINode
-from edgynodes.llm.core.nodes import Supports # type: ignore
+from .openai import LLMOpenAINode
+from ..core.utils.supports import Supports
+
 
 class LLMOllamaNode(LLMOpenAINode):
     """
