@@ -189,8 +189,6 @@ class GetNextToolCallResultNode[T: StateProtocol = StateProtocol, S: SharedProto
                 )
 
             rprint(f"Executed function {chunk.name}")
-            rprint(state)
-            rprint(shared)
 
         except json.JSONDecodeError as e:
             e.add_note(f"Error execution function {chunk.name} with arguments {chunk.arguments}")
@@ -270,11 +268,7 @@ class IntegrateMCPToolResultsNode[T: StateProtocol = StateProtocol, S: SharedPro
 
         async with shared.lock:
 
-            rprint(shared)
-
             for chunk, result in shared.llm.new_tool_call_results:
-
-                rprint(chunk)
 
                 if not isinstance(result, fastmcp.client.client.CallToolResult):
                         remaining.append((chunk, result))
