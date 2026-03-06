@@ -1,6 +1,7 @@
 from .nodes.core.llm import LLMNode
 from .nodes.core.messages import AddMessageNode, SaveNewMessagesNode
 from .nodes.core.tools import AddToolsNode, AddMCPToolsNode, ExtractNewToolCallsNode, GetNextToolCallResultNode, IntegrateToolResultsNode, IntegrateMCPToolResultsNode, MCPToolFunction, ToolContext
+from .nodes.core.turn_counter import TurnCounterNode
 from .nodes.openai import LLMOpenAINode, LLMAzureNode, LLMClaudeNode, LLMGeminiNode, LLMMistralNode, LLMOllamaNode, OpenAIStream
 from .nodes.formatting.filter import StripFormattingsNode
 
@@ -42,5 +43,7 @@ __all__ = [
     
     "StripFormattingsNode",
     "TransformStream",
+
+    "TurnCounterNode",
 
 ]
