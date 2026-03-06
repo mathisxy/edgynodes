@@ -1,5 +1,5 @@
 from edgygraph import Node
-from typing import Callable, Awaitable
+from typing import Callable
 import discord
 import time
 import asyncio
@@ -19,17 +19,24 @@ class JoinVoiceChannelNode(Node[StateProtocol, SharedProtocol]):
             voice_channel = shared.discordvoice.channel
             voice_client = shared.discordvoice.client
 
-        if voice_client and voice_client.is_connected():
-            if voice_client.channel != voice_channel:
-                # Im falschen Channel -> umziehen
-                await voice_client.move_to(voice_channel)
+        # if voice_client and voice_client.is_connected():
+        #     if voice_client.channel != voice_channel:
+        #         # Im falschen Channel -> umziehen
+        #         await voice_client.move_to(voice_channel)
         
-        else:
-            # Nicht verbunden -> neu connecten
-            new_voice_client = await voice_channel.connect()
+        # else:
+        #     # Nicht verbunden -> neu connecten
+        #     new_voice_client = await voice_channel.connect()
             
-            async with shared.lock:
-                shared.discordvoice.client = new_voice_client
+        #     async with shared.lock:
+        #         shared.discordvoice.client = new_voice_client
+
+        print(f"voice_client vor connect: {voice_client}")
+        new_voice_client = await voice_channel.connect()
+        shared.discordvoice.client = new_voice_client
+        print(f"new_voice_client id: {id(new_voice_client)}")
+        print(f"shared.client id nach lock: {id(shared.discordvoice.client)}")
+        print(f"Sind gleich? {new_voice_client is shared.discordvoice.client}")
             
 
 class LeaveVoiceChannelNode(Node[StateProtocol, SharedProtocol]):
@@ -116,13 +123,6 @@ class AwaitRecordVoiceStopNode(Node[StateProtocol, SharedProtocol]):
 
 class AwaitVoiceStartVADNode(Node[StateProtocol, SharedProtocol]):
 
-    on_finished: Callable[[StateProtocol, SharedProtocol], Awaitable[None]] | None
-
-    def __init__(self, on_finished: Callable[[StateProtocol, SharedProtocol], Awaitable[None]] | None = None) -> None:
-        
-        self.on_finished = on_finished
-        
-
     async def __call__(self, state: StateProtocol, shared: SharedProtocol) -> None:
 
         async with shared.lock:
@@ -145,9 +145,6 @@ class AwaitVoiceStartVADNode(Node[StateProtocol, SharedProtocol]):
 
         print(f"Waited for voice for {time.monotonic() - start} seconds")
 
-        if self.on_finished:
-            await self.on_finished(state, shared)
-
     
     async def monitor_voice(self, recorded_voice: asyncio.Event, recording_finished: asyncio.Event) -> None:
 
@@ -166,14 +163,9 @@ class AwaitVoiceStartVADNode(Node[StateProtocol, SharedProtocol]):
 
 class AwaitVoiceStopVADNode(Node[StateProtocol, SharedProtocol]):
 
-    silence_timeout: float
-    on_finished: Callable[[StateProtocol, SharedProtocol], Awaitable[None]] | None = None
+    def __init__(self, silence_timeout: float = 1) -> None:
 
-    def __init__(self, silence_timeout: float = 1, on_finished: Callable[[StateProtocol, SharedProtocol], Awaitable[None]] | None = None) -> None:
-
-        self.silence_timeout = silence_timeout
-        self.on_finished = on_finished
-        
+        self.silence_timeout = silence_timeout        
 
     async def __call__(self, state: StateProtocol, shared: SharedProtocol) -> None:
 
@@ -195,9 +187,6 @@ class AwaitVoiceStopVADNode(Node[StateProtocol, SharedProtocol]):
         await self.monitor_silence(voice_client, sink)
 
         print(f"[yellow]Waited for silence for {time.monotonic() - start:.2f}s.[/yellow]")
-        
-        if self.on_finished:
-            await self.on_finished(state, shared)
 
     
     async def monitor_silence(self, voice_client: discord.VoiceClient, sink: VADWaveSink):
@@ -208,3 +197,21 @@ class AwaitVoiceStopVADNode(Node[StateProtocol, SharedProtocol]):
 
             await asyncio.sleep(0.1)
 
+
+
+class SetInterruptNode(Node[StateProtocol, SharedProtocol]):
+
+    async def __call__(self, state: StateProtocol, shared: SharedProtocol) -> None:
+
+        async with shared.lock:
+
+            shared.discordvoice.interrupt.set()
+
+
+class ClearInterruptNode(Node[StateProtocol, SharedProtocol]):
+
+    async def __call__(self, state: StateProtocol, shared: SharedProtocol) -> None:
+
+        async with shared.lock:
+
+            shared.discordvoice.interrupt.clear()

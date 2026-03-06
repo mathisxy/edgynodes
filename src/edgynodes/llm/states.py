@@ -11,6 +11,8 @@ class StateAttribute(e.StateAttribute):
 
     tools: list[Tool] = Field(default_factory=list[Tool])
 
+    turn_count: int = 0
+
 
 class SharedAttribute(e.SharedAttribute):
     stream: LLMStream | None = None

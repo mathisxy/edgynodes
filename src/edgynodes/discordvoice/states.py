@@ -18,6 +18,7 @@ class SharedAttribute(edgygraph.SharedAttribute):
     text_channel: discord.abc.Messageable | None = None
 
     recording_finished: asyncio.Event = Field(default_factory=asyncio.Event)
+    interrupt: asyncio.Event = Field(default_factory=asyncio.Event)
 
 
 @runtime_checkable
