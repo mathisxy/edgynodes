@@ -1,6 +1,6 @@
-from .nodes.nodes import BuildChatNode, RespondNode
+from .core.states import StateProtocol, SharedProtocol
 
 __all__ = [
-    "BuildChatNode",
-    "RespondNode",
+    "StateProtocol",
+    "SharedProtocol",
 ]
