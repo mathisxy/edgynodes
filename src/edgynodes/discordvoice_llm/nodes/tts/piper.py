@@ -5,7 +5,7 @@ from typing import Tuple
 
 from piper import PiperVoice, SynthesisConfig
 
-from .base import BaseTTSNode
+from .core import BaseTTSNode
 from ...core.states import StateProtocol, SharedProtocol
 
 

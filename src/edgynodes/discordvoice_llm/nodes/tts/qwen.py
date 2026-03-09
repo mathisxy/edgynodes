@@ -5,7 +5,7 @@ import torch
 
 from qwen_tts import Qwen3TTSModel  # type: ignore
 
-from .base import BaseTTSNode
+from .core import BaseTTSNode
 from ...core.states import StateProtocol, SharedProtocol
 
 
