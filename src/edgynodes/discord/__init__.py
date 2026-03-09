@@ -1,5 +1,4 @@
-from .nodes.typing import StartTypingNode, StopTypingNode
-from .states import StateProtocol, SharedProtocol, StateAttribute, SharedAttribute, DiscordTypingManager
+from .core.states import StateProtocol, SharedProtocol, StateAttribute, SharedAttribute, DiscordTypingManager
 
 __all__ = [
     "StateProtocol",
@@ -7,7 +6,5 @@ __all__ = [
     "StateAttribute",
     "SharedAttribute",
 
-    "DiscordTypingManager",
-    "StartTypingNode",
-    "StopTypingNode",
+    "DiscordTypingManager"
 ]
