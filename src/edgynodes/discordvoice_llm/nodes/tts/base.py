@@ -6,8 +6,8 @@ import discord
 from edgygraph import Node
 from llmir import AIRoles, AIChunkText, AIMessage
 
-from ...states import StateProtocol, SharedProtocol
-from ....discordvoice.utils.interrupt_exception import InterruptException
+from ...core.states import StateProtocol, SharedProtocol
+from ....discordvoice import InterruptException
 
 
 class BaseTTSNode[T: StateProtocol, S: SharedProtocol](Node[StateProtocol, SharedProtocol]):

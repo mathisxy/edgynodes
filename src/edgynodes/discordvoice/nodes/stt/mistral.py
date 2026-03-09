@@ -2,7 +2,7 @@ from edgygraph import Node
 from mistralai import Mistral
 import discord
 
-from ...states import StateProtocol, SharedProtocol
+from ...core.states import StateProtocol, SharedProtocol
 
 
 from rich import print
