@@ -1,7 +1,7 @@
 from edgygraph import Node
 from llmir import AIMessage, AIRoles, AIChunkText
 
-from ..states import StateProtocol, SharedProtocol
+from ..core.states import StateProtocol, SharedProtocol
 
 class TranscriptionsToAINode(Node[StateProtocol, SharedProtocol]):
 

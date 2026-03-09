@@ -2,7 +2,7 @@ import re
 from edgygraph import Node
 from llmir import AIChunks, AIChunkText
 
-from ...states import StateProtocol, SharedProtocol
+from ...core.states import StateProtocol, SharedProtocol
 from .utils.streams import TransformStream
 
 

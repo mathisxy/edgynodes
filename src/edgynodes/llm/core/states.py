@@ -3,7 +3,7 @@ from llmir import AIMessages, Tool, AIChunkToolCall
 from pydantic import Field
 from typing import Callable, Any, Tuple, Protocol, runtime_checkable
 
-from .nodes.core.utils.streams import LLMStream
+from ..core.streams import LLMStream
 
 class StateAttribute(e.StateAttribute):
     messages: list[AIMessages] = Field(default_factory=list[AIMessages])

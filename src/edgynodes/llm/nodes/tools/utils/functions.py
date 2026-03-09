@@ -1,9 +1,7 @@
 from datetime import timedelta
-from typing import Any, get_origin
-from edgygraph import StateProtocol, SharedProtocol
+from typing import Any
 import fastmcp
 import llmir
-import inspect
 
 class MCPToolFunction:
 
@@ -43,17 +41,3 @@ class MCPToolFunction:
                 raise_on_error=self.raise_on_error, 
                 meta=self.meta
             )
-
-
-
-class ToolContext[T: StateProtocol = StateProtocol, S: SharedProtocol = SharedProtocol]:
-
-    def __init__(self, state: T, shared: S) -> None:
-        self.state = state
-        self.shared = shared
-
-
-    @classmethod
-    def is_context_param(cls, parameter: inspect.Parameter) -> bool:
-        annotation = parameter.annotation
-        return annotation is cls or get_origin(annotation) is cls

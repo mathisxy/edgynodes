@@ -4,7 +4,7 @@ import discord
 from pydantic import Field
 from typing import Protocol, runtime_checkable
 
-from .utils.typing_manager import DiscordTypingManager
+from ..core.typing_manager import DiscordTypingManager
 
 
 class StateAttribute(edgygraph.StateAttribute):

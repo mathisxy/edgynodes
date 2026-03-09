@@ -1,4 +1,4 @@
-from ..core.utils.supports import Supports
+from ...core.supports import Supports
 from .openai import LLMOpenAINode
 
 

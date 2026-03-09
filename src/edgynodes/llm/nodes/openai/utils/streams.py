@@ -6,7 +6,7 @@ from llmir import AIChunkText, AIChunks, AIChunkToolCall
 import json
 from rich import print as rprint
 
-from ...core.utils.streams import LLMStream # type: ignore
+from ....core.streams import LLMStream # type: ignore
 
 
 class ToolCallDict(TypedDict):

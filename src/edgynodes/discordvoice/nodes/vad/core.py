@@ -4,7 +4,7 @@ import time
 
 from edgygraph import Node
 
-from ...states import StateProtocol, SharedProtocol
+from ...core.states import StateProtocol, SharedProtocol
 from .utils.vad_wave_sink import VADWaveSink
 
 

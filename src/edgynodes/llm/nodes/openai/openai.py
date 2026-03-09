@@ -7,8 +7,8 @@ import json
 import requests
 import base64
 
-from ...states import StateProtocol, SharedProtocol
-from ..core.llm import LLMNode
+from ...core.states import StateProtocol, SharedProtocol
+from ...core.nodes import LLMNode
 from .utils.streams import OpenAIStream
 
 

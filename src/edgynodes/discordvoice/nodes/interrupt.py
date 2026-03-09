@@ -1,6 +1,6 @@
 from edgygraph import Node
 
-from ..states import StateProtocol, SharedProtocol
+from ..core.states import StateProtocol, SharedProtocol
 
 class SetInterruptNode(Node[StateProtocol, SharedProtocol]):
 

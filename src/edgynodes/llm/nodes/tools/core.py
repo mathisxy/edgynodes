@@ -14,8 +14,9 @@ import base64
 import mimetypes
 
 
-from ...states import StateProtocol, SharedProtocol
-from .utils.tools import MCPToolFunction, ToolContext
+from ...core.states import StateProtocol, SharedProtocol
+from .utils.context import ToolContext
+from .utils.functions import MCPToolFunction
     
 
 class AddToolsNode[T: StateProtocol = StateProtocol, S: SharedProtocol = SharedProtocol](Node[T, S]):

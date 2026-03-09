@@ -1,7 +1,7 @@
 from discord.abc import Messageable
 from edgygraph import Node
 
-from ..states import StateProtocol, SharedProtocol
+from ..core.states import StateProtocol, SharedProtocol
 
 
 

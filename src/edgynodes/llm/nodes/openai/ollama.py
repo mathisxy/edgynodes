@@ -1,5 +1,5 @@
 from .openai import LLMOpenAINode
-from ..core.utils.supports import Supports
+from ...core.supports import Supports
 
 
 class LLMOllamaNode(LLMOpenAINode):

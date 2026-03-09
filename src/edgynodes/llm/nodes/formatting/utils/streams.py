@@ -2,7 +2,7 @@ from typing import Callable
 from types import TracebackType
 from llmir import AIChunks
 
-from ...core.utils.streams import LLMStream
+from ....core.streams import LLMStream
 
 
 ChunkTransformer = Callable[[AIChunks], AIChunks | None]

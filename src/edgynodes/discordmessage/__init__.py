@@ -1,4 +1,4 @@
-from .states import StateProtocol, SharedProtocol, StateAttribute, SharedAttribute
+from .core.states import StateProtocol, SharedProtocol, StateAttribute, SharedAttribute
 
 __all__ = [
     "StateProtocol",

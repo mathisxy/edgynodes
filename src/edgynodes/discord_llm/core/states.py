@@ -1,7 +1,7 @@
 from typing import Protocol, runtime_checkable
 
-from ..discord import StateProtocol as DiscordStateProtocol, SharedProtocol as DiscordSharedProtocol
-from ..llm import StateProtocol as LLMStateProtocol, SharedProtocol as LLMSharedProtocol
+from ...discord import StateProtocol as DiscordStateProtocol, SharedProtocol as DiscordSharedProtocol
+from ...llm import StateProtocol as LLMStateProtocol, SharedProtocol as LLMSharedProtocol
 
 
 @runtime_checkable

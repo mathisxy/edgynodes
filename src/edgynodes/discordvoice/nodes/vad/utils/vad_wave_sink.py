@@ -1,4 +1,4 @@
-import webrtcvad
+import webrtcvad # type: ignore
 import discord
 import time
 import asyncio
@@ -14,7 +14,7 @@ class VADWaveSink(discord.sinks.WaveSink):
 
 
     def __init__(self, vad_mode: Literal[0, 1, 2, 3] = 2, dump_initial_silence: bool = True):
-        super().__init__()
+        super().__init__() # type: ignore
 
         self.vad = webrtcvad.Vad(vad_mode)  # 0–3 (3 = aggressiv)
         self.last_voice = time.monotonic()
@@ -33,11 +33,11 @@ class VADWaveSink(discord.sinks.WaveSink):
             if len(frame) < self.frame_size:
                 continue
 
-            if self.vad.is_speech(frame, self.SAMPLE_RATE):
+            if self.vad.is_speech(frame, self.SAMPLE_RATE): # type: ignore
                 self.received_voice.set()
                 self.last_voice = time.monotonic()
         
         
         if self.received_voice.is_set():
             
-            super().write(data, user)
+            super().write(data, user) # type: ignore

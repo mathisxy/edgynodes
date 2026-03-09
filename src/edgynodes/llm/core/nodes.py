@@ -1,7 +1,7 @@
 from edgygraph import Node
 
-from ...states import StateProtocol, SharedProtocol
-from .utils.supports import Supports
+from ..core.states import StateProtocol, SharedProtocol
+from ..core.supports import Supports
 
 class LLMNode[T: StateProtocol = StateProtocol, S: SharedProtocol = SharedProtocol](Node[T, S]):
 

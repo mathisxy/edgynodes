@@ -4,7 +4,7 @@ import asyncio
 
 from edgygraph import Node
 
-from ...states import StateProtocol, SharedProtocol
+from ...core.states import StateProtocol, SharedProtocol
 
 class StartRecordVoiceNode(Node[StateProtocol, SharedProtocol]):
 

@@ -1,7 +1,7 @@
 from llmir import AIMessages
 from edgygraph import Node
 
-from ...states import StateProtocol, SharedProtocol
+from ..core.states import StateProtocol, SharedProtocol
 
 class AddMessageNode[T: StateProtocol = StateProtocol, S: SharedProtocol = SharedProtocol](Node[T, S]):
 
