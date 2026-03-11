@@ -5,7 +5,7 @@ import llmir
 
 class MCPToolFunction:
 
-    tool: llmir.Tool
+    tool: llmir.AITool
     client: fastmcp.Client[Any]
     timeout: timedelta | float | int | None
     progress_handler: fastmcp.client.client.ProgressHandler | None
@@ -13,7 +13,7 @@ class MCPToolFunction:
     meta: dict[str, Any] | None
 
     def __init__(self, 
-                 tool: llmir.Tool, 
+                 tool: llmir.AITool, 
                  client: fastmcp.Client[Any], 
                  timeout: timedelta | float | int | None = None,
                  progress_handler: fastmcp.client.client.ProgressHandler | None = None,

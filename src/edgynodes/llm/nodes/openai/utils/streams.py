@@ -1,12 +1,13 @@
-from typing import AsyncIterator, TypedDict
+from typing import TypedDict
 from types import TracebackType
 from openai.types.chat import ChatCompletionChunk
 from openai.types.chat.chat_completion_chunk import ChoiceDeltaToolCall
+from openai import AsyncStream
 from llmir import AIChunkText, AIChunks, AIChunkToolCall
 import json
 from rich import print as rprint
 
-from ....core.streams import LLMStream # type: ignore
+from ....core.streams import LLMStream
 
 
 class ToolCallDict(TypedDict):
@@ -17,16 +18,13 @@ class ToolCallDict(TypedDict):
 
 class OpenAIStream(LLMStream):
 
-    iterator: AsyncIterator[ChatCompletionChunk]
 
-    _tool_calls: dict[int, ToolCallDict]
-
-    def __init__(self, iterator: AsyncIterator[ChatCompletionChunk]) -> None:
+    def __init__(self, iterator: AsyncStream[ChatCompletionChunk]) -> None:
         super().__init__() 
         
         self.iterator = iterator
 
-        self._tool_calls = {}
+        self._tool_calls: dict[int, ToolCallDict] = {}
 
     async def __anext__(self) -> AIChunks:
 
@@ -116,7 +114,6 @@ class OpenAIStream(LLMStream):
     
     async def aclose(self) -> None:
         await super().aclose()
-        await self.iterator.close() # type:ignore 
+        await self.iterator.close()
         print("aclose called")
-        pass
         

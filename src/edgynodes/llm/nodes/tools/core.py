@@ -21,7 +21,7 @@ from .utils.functions import MCPToolFunction
 
 class AddToolsNode[T: StateProtocol = StateProtocol, S: SharedProtocol = SharedProtocol](Node[T, S]):
 
-    tools: dict[str, Tuple[Callable[..., Any], llmir.Tool]]
+    tools: dict[str, Tuple[Callable[..., Any], llmir.AITool]]
 
     def __init__(self, functions: list[Callable[..., Any]]) -> None:
         super().__init__()
@@ -42,9 +42,9 @@ class AddToolsNode[T: StateProtocol = StateProtocol, S: SharedProtocol = SharedP
                 state.llm.tools.append(tool)
 
     
-    def format_functions(self, functions: list[Callable[..., Any]]) -> dict[str, Tuple[Callable[..., Any], llmir.Tool]]:
+    def format_functions(self, functions: list[Callable[..., Any]]) -> dict[str, Tuple[Callable[..., Any], llmir.AITool]]:
 
-        tools: dict[str, Tuple[Callable[..., Any], llmir.Tool]] = {}
+        tools: dict[str, Tuple[Callable[..., Any], llmir.AITool]] = {}
 
         for function in functions:
 
@@ -80,7 +80,7 @@ class AddToolsNode[T: StateProtocol = StateProtocol, S: SharedProtocol = SharedP
 
             tools[function.__name__] = (
                 function,
-                llmir.Tool(
+                llmir.AITool(
                     name=function.__name__,
                     description=doc.description or "",
                     input_schema=dynamic_model.model_json_schema(),
@@ -115,7 +115,7 @@ class AddMCPToolsNode[T: StateProtocol = StateProtocol, S: SharedProtocol = Shar
         
         async with self.client:
 
-            tools: list[llmir.Tool] = self.format_tools(await self.client.list_tools())
+            tools: list[llmir.AITool] = self.format_tools(await self.client.list_tools())
 
             state.llm.tools.extend(tools)
 
@@ -131,13 +131,13 @@ class AddMCPToolsNode[T: StateProtocol = StateProtocol, S: SharedProtocol = Shar
                     shared.llm.tool_functions[tool.name] = function
 
     
-    def format_tools(self, mcp_tools: list[mcp.types.Tool]) -> list[llmir.Tool]:
+    def format_tools(self, mcp_tools: list[mcp.types.Tool]) -> list[llmir.AITool]:
 
-        tools: list[llmir.Tool] = []
+        tools: list[llmir.AITool] = []
 
         for mcp_tool in mcp_tools:
             tools.append(
-                llmir.Tool(
+                llmir.AITool(
                     name=mcp_tool.name,
                     description=mcp_tool.description or "",
                     input_schema=mcp_tool.inputSchema,

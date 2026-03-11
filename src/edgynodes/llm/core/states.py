@@ -1,5 +1,5 @@
 import edgygraph as e
-from llmir import AIMessages, Tool, AIChunkToolCall
+from llmir import AIMessages, AITool, AIChunkToolCall
 from pydantic import Field
 from typing import Callable, Any, Tuple, Protocol, runtime_checkable
 
@@ -9,7 +9,7 @@ class StateAttribute(e.StateAttribute):
     messages: list[AIMessages] = Field(default_factory=list[AIMessages])
     new_messages: list[AIMessages] = Field(default_factory=list[AIMessages])
 
-    tools: list[Tool] = Field(default_factory=list[Tool])
+    tools: list[AITool] = Field(default_factory=list[AITool])
 
     turn_count: int = 0
 

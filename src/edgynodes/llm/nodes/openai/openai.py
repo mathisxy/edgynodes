@@ -1,8 +1,7 @@
-from llmir import AIMessages, AIMessage, AIChunkText, AIChunkImageURL, AIChunks, AIRoles, Tool, AIChunkToolCall
-from llmir.adapter import to_openai, OpenAIMessages
-from typing import AsyncIterator
-from openai import AsyncOpenAI
-from openai.types.chat import ChatCompletionChunk, ChatCompletionFunctionToolParam, ChatCompletion
+from llmir import AIMessages, AIMessage, AIChunkText, AIChunkImageURL, AIChunks, AIRoles, AITool, AIChunkToolCall
+from llmir.adapter import OpenAIAdapter
+from openai import AsyncOpenAI, AsyncStream
+from openai.types.chat import ChatCompletionChunk, ChatCompletionFunctionToolParam, ChatCompletion, ChatCompletionMessageParam
 import json
 import requests
 import base64
@@ -18,8 +17,8 @@ class LLMOpenAINode[T: StateProtocol = StateProtocol, S: SharedProtocol = Shared
     client: AsyncOpenAI
     extra_body: dict[str, object] | None
 
-    def __init__(self, model: str, api_key: str, base_url: str = "https://api.openai.com/v1", enable_streaming: bool = False, extra_body: dict[str, object] | None = None) -> None:
-        super().__init__(model, enable_streaming)
+    def __init__(self, model: str, api_key: str, base_url: str = "https://api.openai.com/v1", stream: bool = False, extra_body: dict[str, object] | None = None) -> None:
+        super().__init__(model, stream)
 
         self.client = AsyncOpenAI(api_key=api_key, base_url=base_url)
         self.extra_body = extra_body
@@ -29,11 +28,11 @@ class LLMOpenAINode[T: StateProtocol = StateProtocol, S: SharedProtocol = Shared
         
         chat = state.llm.messages
 
-        if not self.enable_streaming:
+        if not self.stream:
 
             response: ChatCompletion = await self.client.chat.completions.create(
                 model=self.model,
-                messages=self.format_messages(chat), # type: ignore
+                messages=self.format_messages(chat),
                 tools=self.format_tools(state.llm.tools),
                 extra_body=self.extra_body,
             )
@@ -47,9 +46,9 @@ class LLMOpenAINode[T: StateProtocol = StateProtocol, S: SharedProtocol = Shared
 
             assert self.supports.streaming == True
 
-            stream: AsyncIterator[ChatCompletionChunk] = await self.client.chat.completions.create( # type: ignore
+            stream: AsyncStream[ChatCompletionChunk] = await self.client.chat.completions.create(
                 model=self.model,
-                messages=self.format_messages(chat), # type: ignore
+                messages=self.format_messages(chat),
                 tools=self.format_tools(state.llm.tools),
                 stream=True
             )
@@ -58,7 +57,7 @@ class LLMOpenAINode[T: StateProtocol = StateProtocol, S: SharedProtocol = Shared
                 if shared.llm.stream is not None:
                     raise Exception("Stream variable in Shared is occupied")
             
-                shared.llm.stream = OpenAIStream(iterator=stream) # type: ignore
+                shared.llm.stream = OpenAIStream(iterator=stream)
 
 
     def format_response(self, state: T, response: ChatCompletion):
@@ -89,24 +88,12 @@ class LLMOpenAINode[T: StateProtocol = StateProtocol, S: SharedProtocol = Shared
     
         
 
-    def format_tools(self, tools: list[Tool]) -> list[ChatCompletionFunctionToolParam]:
+    def format_tools(self, tools: list[AITool]) -> list[ChatCompletionFunctionToolParam]:
 
-        formatted_tools: list[ChatCompletionFunctionToolParam] = []
-
-        for tool in tools:
-            formatted_tools.append({
-                "type": "function",
-                "function": {
-                    "name": tool.name,
-                    "description": tool.description,
-                    "parameters": tool.input_schema,
-                }
-            })
-
-        return formatted_tools
+        return OpenAIAdapter.tools(tools)
 
     
-    def format_messages(self, messages: list[AIMessages]) -> list[OpenAIMessages]:
+    def format_messages(self, messages: list[AIMessages]) -> list[ChatCompletionMessageParam]:
 
         if not self.supports.remote_image_urls:
 
@@ -128,6 +115,6 @@ class LLMOpenAINode[T: StateProtocol = StateProtocol, S: SharedProtocol = Shared
                             except Exception as e:
                                 print(f"Error downloading image from URL {chunk.url}: {e}")
 
-        formatted = to_openai(messages)
+        formatted = OpenAIAdapter.chat(messages)
         # rprint(formatted)
         return formatted
