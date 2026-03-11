@@ -25,9 +25,11 @@ class LLMOllamaNode(LLMNode):
         chat = OllamaAdapter.chat(state.llm.messages)
         tools = OllamaAdapter.tools(state.llm.tools)
 
+        print(chat)
+
         for message in chat:
             if message.images:
-                message.images = await self.download_remote_image_urls(message.images)
+                await self.download_remote_image_urls(message.images)
 
         print(chat)
         
@@ -87,5 +89,6 @@ class LLMOllamaNode(LLMNode):
         for image in images:
 
             if isinstance(image.value, str) and image.value.startswith("http"):
+                print(f"Downloading image from {image.value}")
                 response = requests.get(image.value)
                 image.value = f"data:image/jpeg;base64,{base64.b64encode(response.content).decode('utf-8')}"
