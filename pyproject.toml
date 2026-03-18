@@ -1,6 +1,6 @@
 [project]
 name = "edgynodes"
-version = "0.0.101"
+dynamic = ["version"]
 description = "Graph-based LLM Pipeline Builder with edgygraph and llm-ir"
 authors = [{ name="Mathis Siebert" }]
 requires-python = ">=3.13"
@@ -9,7 +9,15 @@ dependencies = [
     "edgygraph>=0.0.2"
 ]
 
+[project.urls]
+Homepage = "https://github.com/mathisxy/edgynodes"
+# Documentation = "https://mathisxy.github.io/edgynodes/"
+Repository = "https://github.com/mathisxy/edgynodes"
+Issues = "https://github.com/mathisxy/edgynodes/issues"
+
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools>=80", "setuptools_scm>=8"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
 
