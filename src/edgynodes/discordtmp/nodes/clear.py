@@ -3,6 +3,8 @@ from edgygraph import Node
 from ..core.states import StateProtocol, SharedProtocol
 
 class ClearTmpDiscordMessagesNode(Node[StateProtocol, SharedProtocol]):
+    
+    dependencies = {"py-cord"}
 
     async def __call__(self, state: StateProtocol, shared: SharedProtocol) -> None:
 

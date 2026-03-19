@@ -14,11 +14,14 @@ class BuildChatNode(Node[StateProtocol, SharedProtocol]):
         include_attachments: Whether to transfer attachments to the messages.
     """
 
+    dependencies = {"llmir", "py-cord"}
+
     limit: int
     include_embeds: bool
     include_attachments: bool
 
     def __init__(self, limit: int = 20, include_embeds: bool = True, include_attachments: bool = True) -> None:
+        super().__init__()
 
         self.limit = limit
         self.include_embeds = include_embeds

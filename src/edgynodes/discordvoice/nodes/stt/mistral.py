@@ -5,10 +5,9 @@ import discord
 from ...core.states import StateProtocol, SharedProtocol
 
 
-from rich import print
-
-
 class STTMistralNode(Node[StateProtocol, SharedProtocol]):
+
+    dependencies = {"mistralai", "py-cord"}
 
 
     model: str
@@ -17,6 +16,8 @@ class STTMistralNode(Node[StateProtocol, SharedProtocol]):
     language: str | None
 
     def __init__(self, api_key: str, model: str = "voxtral-mini-latest", language: str | None = None) -> None:
+        super().__init__()
+
         self.model = model
         self.client = Mistral(api_key=api_key)
         

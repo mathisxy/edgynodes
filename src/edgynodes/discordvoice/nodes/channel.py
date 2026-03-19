@@ -5,6 +5,7 @@ from ..core.states import StateProtocol, SharedProtocol
 
 class JoinVoiceChannelNode(Node[StateProtocol, SharedProtocol]):
 
+    dependencies = {"py-cord"}
 
     async def __call__(self, state: StateProtocol, shared: SharedProtocol) -> None:
 
@@ -26,6 +27,8 @@ class JoinVoiceChannelNode(Node[StateProtocol, SharedProtocol]):
             
 
 class LeaveVoiceChannelNode(Node[StateProtocol, SharedProtocol]):
+
+    dependencies = {"py-cord"}
 
     async def __call__(self, state: StateProtocol, shared: SharedProtocol) -> None:
         async with shared.lock:

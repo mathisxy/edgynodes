@@ -29,13 +29,16 @@ class RespondNode(Node[StateProtocol, SharedProtocol]):
         stream_text_edit_interval: The interval in seconds to update the streamed message in the Discord channel.
     """
 
+    dependencies = {"llmir", "py-cord"}
+
     send_tool_responses: Literal[True, False, "only_media"]
     stream_text_edit_interval: float
     filter: Callable[[AIMessages, AIChunks], bool]
 
 
     def __init__(self, filter: Callable[[AIMessages, AIChunks], bool] | None = None, send_tool_responses: Literal[True, False, "only_media"] = "only_media", stream_text_edit_interval: float = 1.0) -> None:
-        
+        super().__init__()
+
         self.send_tool_responses = send_tool_responses
         self.stream_text_edit_interval = stream_text_edit_interval
         self.filter = filter if filter is not None else lambda _, __: True

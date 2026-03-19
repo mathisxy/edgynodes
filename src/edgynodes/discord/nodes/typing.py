@@ -7,9 +7,12 @@ from ..core.states import StateProtocol, SharedProtocol
 
 class StartTypingNode(Node[StateProtocol, SharedProtocol]):
 
+    dependencies = {"py-cord"}
+
     _channel: Messageable | None
 
     def __init__(self, channel: Messageable | None = None) -> None:
+        super().__init__()
 
         self._channel = channel
 
@@ -25,6 +28,8 @@ class StartTypingNode(Node[StateProtocol, SharedProtocol]):
 
 
 class StopTypingNode(Node[StateProtocol, SharedProtocol]):
+
+    dependencies = {"py-cord"}
 
     _channel: Messageable | None
 
