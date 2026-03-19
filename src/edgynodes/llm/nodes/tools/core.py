@@ -21,6 +21,8 @@ from .utils.functions import MCPToolFunction
 
 class AddToolsNode[T: StateProtocol = StateProtocol, S: SharedProtocol = SharedProtocol](Node[T, S]):
 
+    dependencies = {"llmir", "mcp", "fastmcp", "docstring_parser"}
+
     tools: dict[str, Tuple[Callable[..., Any], llmir.AITool]]
 
     def __init__(self, functions: list[Callable[..., Any]]) -> None:

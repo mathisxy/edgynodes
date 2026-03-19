@@ -14,6 +14,8 @@ from .utils.streams import OpenAIStream
 
 class LLMOpenAINode[T: StateProtocol = StateProtocol, S: SharedProtocol = SharedProtocol](LLMNode[T, S]):
 
+    dependencies = {"llmir", "openai"}
+
     client: AsyncOpenAI
     extra_body: dict[str, object] | None
 

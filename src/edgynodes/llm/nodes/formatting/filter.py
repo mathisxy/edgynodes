@@ -9,6 +9,7 @@ from .utils.streams import TransformStream
 
 class StripFormattingsNode(Node[StateProtocol, SharedProtocol]):
 
+    dependencies = {"llmir"}
     
     async def __call__(self, state: StateProtocol, shared: SharedProtocol) -> None:
         

@@ -9,12 +9,13 @@ from ollama import (
 from llmir import AIMessage, AIRoles, AIChunkToolCall, AIChunkText, AIChunks
 from llmir.adapter import OllamaAdapter
 
-from edgynodes.llm.core.states import SharedProtocol, StateProtocol # type: ignore
-
+from ...core.states import SharedProtocol, StateProtocol
 from ...core.nodes import LLMNode
 from .utils.streams import OllamaStream
 
-class LLMOllamaNode(LLMNode):
+class LLMOllamaNode[T: StateProtocol = StateProtocol, S: SharedProtocol = SharedProtocol](LLMNode[T, S]):
+
+    dependencies = {"ollama", "llmir"}
 
     def __init__(self, model: str, stream: bool = False, keep_alive: str | None = None) -> None:
         super().__init__(model, stream)
