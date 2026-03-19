@@ -18,6 +18,8 @@ class Qwen3TTSNode(BaseTTSNode[StateProtocol, SharedProtocol]):
     For CustomVoice, pass the appropriate `speaker` parameter instead.
     """
 
+    dependencies = {"qwen-tts", "soundfile", "torch"}
+
     def __init__(
         self,
         model_name: str = "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice",

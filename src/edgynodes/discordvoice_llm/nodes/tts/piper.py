@@ -12,6 +12,8 @@ from ...core.states import StateProtocol, SharedProtocol
 class PiperTTSNode(BaseTTSNode[StateProtocol, SharedProtocol]):
     """TTS via local Piper model."""
 
+    dependencies = {"piper-tts"}
+
     voice: PiperVoice
     syn_config: SynthesisConfig | None
 

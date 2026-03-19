@@ -5,6 +5,7 @@ from ..core.states import StateProtocol, SharedProtocol
 
 class TranscriptionsToAINode(Node[StateProtocol, SharedProtocol]):
 
+    dependencies = {"llmir"}
 
     async def __call__(self, state: StateProtocol, shared: SharedProtocol) -> None:
         
