@@ -10,7 +10,7 @@ from .utils.vad_wave_sink import VADWaveSink
 
 class AwaitVoiceStartVADNode(Node[StateProtocol, SharedProtocol]):
 
-    dependencies = {"py-cord", "webrtcvad"}
+    dependencies = {"py-cord", "webrtcvad", "setuptools"}
 
     async def __call__(self, state: StateProtocol, shared: SharedProtocol) -> None:
 

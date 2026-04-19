@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from typing import Literal
 import requests
 import base64
 from ollama import (
@@ -17,10 +18,11 @@ class LLMOllamaNode[T: StateProtocol = StateProtocol, S: SharedProtocol = Shared
 
     dependencies = {"ollama", "llmir"}
 
-    def __init__(self, model: str, stream: bool = False, keep_alive: str | None = None) -> None:
+    def __init__(self, model: str, stream: bool = False, think: bool | Literal["low", "medium", "high"] | None = None, keep_alive: str | None = None) -> None:
         super().__init__(model, stream)
         self.keep_alive = keep_alive
-    
+        self.think: bool | Literal["low", "medium", "high"] | None = think
+
     async def __call__(self, state: StateProtocol, shared: SharedProtocol) -> None:
 
         chat = OllamaAdapter.chat(state.llm.messages)
@@ -40,6 +42,7 @@ class LLMOllamaNode[T: StateProtocol = StateProtocol, S: SharedProtocol = Shared
             keep_alive=self.keep_alive,
             messages=chat,
             tools=tools,
+            think=self.think,
         )
 
         if isinstance(response, ChatResponse):
