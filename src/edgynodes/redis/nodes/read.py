@@ -3,25 +3,25 @@ import edgygraph
 from ..core.states import StateProtocol, SharedProtocol
 
 
-class ReadNode(edgygraph.Node[StateProtocol, SharedProtocol]):
+class ReadNode[T: StateProtocol = StateProtocol, S: SharedProtocol = SharedProtocol](edgygraph.Node[T, S]):
 
     required_dependencies = {"redis"}
 
-    async def __call__(self, state: StateProtocol, shared: SharedProtocol) -> None:
-
-        key = state.redis.read.get()
+    async def __call__(self, state: T, shared: S) -> None:
+        
+        key = state.redis.read.pop(0)
         value = await shared.redis.connection.get(key)
         if value is not None:
             state.redis.results[key] = value
 
-class ReadAllNode(edgygraph.Node[StateProtocol, SharedProtocol]):
+class ReadAllNode[T: StateProtocol = StateProtocol, S: SharedProtocol = SharedProtocol](edgygraph.Node[T, S]):
 
     required_dependencies = {"redis"}
 
-    async def __call__(self, state: StateProtocol, shared: SharedProtocol) -> None:
+    async def __call__(self, state: T, shared: S) -> None:
 
-        while not state.redis.read.empty():
-            key = state.redis.read.get()
+        while state.redis.read:
+            key = state.redis.read.pop(0)
             value = await shared.redis.connection.get(key)
             if value is not None:
                 state.redis.results[key] = value

@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from typing import Literal
 import requests
+import uuid
 import base64
 from ollama import (
     AsyncClient,
@@ -18,10 +19,11 @@ class LLMOllamaNode[T: StateProtocol = StateProtocol, S: SharedProtocol = Shared
 
     dependencies = {"ollama", "llmir"}
 
-    def __init__(self, model: str, stream: bool = False, think: bool | Literal["low", "medium", "high"] | None = None, keep_alive: str | None = None) -> None:
+    def __init__(self, model: str, stream: bool = False, think: bool | Literal["low", "medium", "high"] | None = None, keep_alive: str | None = None, generate_unique_tool_call_ids: bool = False) -> None:
         super().__init__(model, stream)
         self.keep_alive = keep_alive
         self.think: bool | Literal["low", "medium", "high"] | None = think
+        self.generate_unique_tool_call_ids = generate_unique_tool_call_ids
 
     async def __call__(self, state: StateProtocol, shared: SharedProtocol) -> None:
 
@@ -62,7 +64,7 @@ class LLMOllamaNode[T: StateProtocol = StateProtocol, S: SharedProtocol = Shared
                 for tool_call in tool_calls:
                     chunks.append(
                         AIChunkToolCall(
-                            id=tool_call.function.name,
+                            id=f"{tool_call.function.name}_{uuid.uuid4()}" if self.generate_unique_tool_call_ids else tool_call.function.name,
                             name=tool_call.function.name,
                             arguments=tool_call.function.arguments,
                         )
@@ -81,7 +83,7 @@ class LLMOllamaNode[T: StateProtocol = StateProtocol, S: SharedProtocol = Shared
         else:
 
             async with shared.lock:
-                shared.llm.stream = OllamaStream(response)
+                shared.llm.stream = OllamaStream(response, generate_unique_tool_call_ids=self.generate_unique_tool_call_ids)
 
 
 

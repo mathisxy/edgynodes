@@ -1,5 +1,6 @@
 from typing import AsyncIterator
 from types import TracebackType
+import uuid
 from ollama import ChatResponse
 from llmir import AIChunkText, AIChunks, AIChunkToolCall
 from rich import print as rprint
@@ -9,9 +10,10 @@ from ....core.streams import LLMStream
 class OllamaStream(LLMStream):
     iterator: AsyncIterator[ChatResponse]
 
-    def __init__(self, iterator: AsyncIterator[ChatResponse]) -> None:
+    def __init__(self, iterator: AsyncIterator[ChatResponse], generate_unique_tool_call_ids: bool = False) -> None:
         super().__init__()
         self.iterator = iterator
+        self.generate_unique_tool_call_ids = generate_unique_tool_call_ids
 
     async def __anext__(self) -> AIChunks:
         if self.abort.is_set():
@@ -33,7 +35,7 @@ class OllamaStream(LLMStream):
                 rprint("Received tool call: ", message.tool_calls)
                 tool_call = message.tool_calls[0]
                 return AIChunkToolCall(
-                    id=tool_call.function.name,
+                    id=f"{tool_call.function.name}_{uuid.uuid4()}" if self.generate_unique_tool_call_ids else tool_call.function.name,
                     name=tool_call.function.name,
                     arguments=dict(tool_call.function.arguments),
                 )

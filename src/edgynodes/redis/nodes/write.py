@@ -2,25 +2,25 @@ import edgygraph
 
 from ..core.states import SharedProtocol, StateProtocol
 
-class WriteNode(edgygraph.Node[StateProtocol, SharedProtocol]):
+class WriteNode[T: StateProtocol = StateProtocol, S: SharedProtocol = SharedProtocol](edgygraph.Node[T, S]):
 
     required_dependencies = {"redis"}
 
-    async def __call__(self, state: StateProtocol, shared: SharedProtocol) -> None:
+    async def __call__(self, state: T, shared: S) -> None:
 
-        data = state.redis.write.get()
+        data = state.redis.write.pop(0)
         
         for key, value in data.items():
             await shared.redis.connection.set(key, value)
 
-class WriteAllNode(edgygraph.Node[StateProtocol, SharedProtocol]):
+class WriteAllNode[T: StateProtocol = StateProtocol, S: SharedProtocol = SharedProtocol](edgygraph.Node[T, S]):
 
     required_dependencies = {"redis"}
 
-    async def __call__(self, state: StateProtocol, shared: SharedProtocol) -> None:
+    async def __call__(self, state: T, shared: S) -> None:
 
-        while not state.redis.write.empty():
-            data = state.redis.write.get()
+        while state.redis.write:
+            data = state.redis.write.pop(0)
             
             for key, value in data.items():
                 await shared.redis.connection.set(key, value)
