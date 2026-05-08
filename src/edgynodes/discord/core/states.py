@@ -13,6 +13,8 @@ class StateAttribute(edgygraph.StateAttribute):
 class SharedAttribute(edgygraph.SharedAttribute):    
 
     text_channel: discord.abc.Messageable
+    current_messages: list[discord.Message] = Field(default_factory=list[discord.Message])
+    saved_messages: list[discord.Message] = Field(default_factory=list[discord.Message])
 
     bot: commands.Bot
     typing: DiscordTypingManager = Field(default_factory=DiscordTypingManager)
