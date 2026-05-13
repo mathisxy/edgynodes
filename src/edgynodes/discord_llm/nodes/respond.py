@@ -251,7 +251,7 @@ class RespondNode(Node[StateProtocol, SharedProtocol]):
         """
         
         formatted_args: dict[str, str] = {k.replace("_", " ").capitalize(): str(v) for k, v in chunk.arguments.items()}
-        embed = discord.Embed(title=chunk.name.replace("_", " ").title())
+        embed = discord.Embed(description=f"```tool_call_{chunk.id}\n{chunk.name.replace('_', ' ').title()}```")
         for key, value in formatted_args.items():
             value = value[:max_value_length - 4] + " ..." if len(value) > 1024 else value
             embed.add_field(name=key, value=value, inline=inline)

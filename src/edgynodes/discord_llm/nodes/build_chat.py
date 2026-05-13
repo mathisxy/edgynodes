@@ -47,6 +47,11 @@ class BuildChatNode(Node[StateProtocol, SharedProtocol]):
 
             if msg.embeds and self.include_embeds:
                 for embed in msg.embeds:
+
+                    if embed.description and embed.description.strip().startswith("```tool_call_"): #TODO Implement filters or something to keep a clean architecture instead of hardcoding this here
+                        # This is a tool call embed, we will handle it in the tool call response node, so we skip it here to avoid duplicates
+                        continue
+
                     chunks.extend(self.format_embed(embed))
 
             if msg.attachments and self.include_attachments:
